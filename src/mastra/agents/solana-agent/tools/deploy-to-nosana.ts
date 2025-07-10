@@ -24,6 +24,7 @@ export const deployToNosanaTool = createTool({
     ipfsHash: z.string(),
     logs: z.array(z.string()).optional(),
     deploymentStatus: z.enum(["PENDING", "RUNNING", "COMPLETED", "FAILED"]),
+    error: z.string().optional(),
   }),
 
   execute: async (args: any) => {
@@ -92,14 +93,40 @@ export const deployToNosanaTool = createTool({
       const market = new PublicKey('7AtiXMSH6R1jjBxrcYjehCkkSF7zvYWte63gwEDBcGHq');;
 
       console.log("Posting job to Nosana market...");
-      const response = await nosana.jobs.list(ipfsHash, 3600, market);
+      let response;
+      try {
+        response = await nosana.jobs.list(
+          ipfsHash,
+          3600, // timeout in seconds
+          market
+        );
+      } catch (e: any) {
+        console.error("Error posting job to Nosana market:", e);
+        return {
+          jobId: "",
+          dashboardUrl: "",
+          serviceUrl: "",
+          ipfsHash,
+          logs: [] as string[],
+          deploymentStatus: "FAILED" as const,
+          error: e?.error ? String(e.error) : e?.message ? String(e.message) : String(e),
+        };
+      }
 
       let jobId: string;
       if (response && typeof response === 'object' && 'job' in response) {
         jobId = (response as any).job;
       } else {
         console.error("Unexpected jobs.list() response:", response);
-        throw new Error("Unexpected response format from Nosana jobs.list()");
+        return {
+          jobId: "",
+          dashboardUrl: "",
+          serviceUrl: "",
+          ipfsHash,
+          logs: [] as string[],
+          deploymentStatus: "FAILED" as const,
+          error: "Unexpected response format from Nosana jobs.list()",
+        };
       }
 
       const dashboardUrl = `https://dashboard.nosana.com/jobs/${jobId}`;
