@@ -1,6 +1,6 @@
-# 🌟 Solana AI Agent
+# 🌟 Nosana & Solana AI Agent
 
-*Conversational automation for Solana blockchain tasks.*
+*Conversational automation for Solana and Nosana blockchain tasks.*
 
 <div align="center">
 
@@ -10,19 +10,27 @@
 
 </div>
 
-
 ---
 
 ## Features
 
+### Solana Features
 - Create SPL tokens and mint initial supply
-- Get the Solana Balanace by wallet address
-- Analyze  account details by Wallet address
-- Analyze your transaction with complete infomation by signature 
-- Analyze the Token supply information of spl tokens by mint address of token 
-- Analyze the Token Distribution by getting top 10 token holders account information
+- Get the Solana balance by wallet address
+- Analyze account details by wallet address
+- Analyze your transaction with complete information by signature
+- Analyze the token supply information of SPL tokens by mint address
+- Analyze the token distribution by getting top 10 token holders account information
 - Real-time analytics and batch smart contract operations
-- Get the All Associated Token Account for a wallet addres (pubkey)
+- Get all associated token accounts for a wallet address (pubkey)
+
+### Nosana Features
+- Get Nosana job info by job address
+- List all jobs with advanced filtering (state, time, market)
+- Get all runs for a specific job
+- Get details for a specific run
+- Get market info by market address
+- Unified analytics and automation for the Nosana network
 
 ## Quick Start
 
@@ -69,7 +77,7 @@ docker run -p 8080:8080 --env-file .env yourusername/solana-ai-agent:latest
 
 ---
 
-**Built with ❤️🤍 for the Solana ecosystem**
+**Built with ❤️🤍 for the Solana & Nosana ecosystem**
 
-*Making blockchain development accessible through AI automation*
+*Making blockchain and distributed compute development accessible through AI automation*
 
