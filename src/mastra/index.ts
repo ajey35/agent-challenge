@@ -1,6 +1,6 @@
 import { Mastra } from "@mastra/core/mastra";
 import { PinoLogger } from "@mastra/loggers";
-import { SolanaNosanaAgent } from "./agents/solana-agent/solana-agent"; // solana-spl-agent
+import { SolanaNosanaAgent } from "./agents/nos-sol-agent/nos-sol-agent"; // solana-spl-agent
 
 export const mastra = new Mastra({
 	agents: { SolanaNosanaAgent },
