@@ -4,12 +4,15 @@
       "id": "agents",
       "args": {
         "gpu": true,
-        "image": "docker.io/ajey35/solana-agent:latest",
+        "image": "docker.io/bharath18ms/solana-agent:latest",
         "expose": [
           {
             "port": 8080
           }
-        ]  
+        ],
+        "entrypoint": [
+          "/bin/sh"
+        ]
       },
       "type": "container/run"
     }
