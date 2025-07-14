@@ -25,6 +25,7 @@
 - Get all associated token accounts for a wallet address (pubkey)
 
 ### Nosana Features
+- Deploy to Nosana Network
 - Get Nosana job info by job address
 - List all jobs with advanced filtering (state, time, market)
 - Get all runs for a specific job
