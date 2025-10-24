@@ -1,18 +1,22 @@
 "use client";
 
-import { useCoAgent, useCopilotAction } from "@copilotkit/react-core";
+import { useCopilotAction } from "@copilotkit/react-core";
 import { CopilotKitCSSProperties, CopilotSidebar } from "@copilotkit/react-ui";
 import { useState } from "react";
-import { AgentState as AgentStateSchema } from "@/mastra/agents";
-import { z } from "zod";
-import { WeatherToolResult } from "@/mastra/tools";
 
-type AgentState = z.infer<typeof AgentStateSchema>;
+// Gmail interfaces
+interface Email {
+  id: string;
+  subject: string;
+  from: string;
+  snippet: string;
+  priority?: number;
+  reasoning?: string;
+}
 
 export default function CopilotKitPage() {
   const [themeColor, setThemeColor] = useState("#6366f1");
 
-  // 🪁 Frontend Actions: https://docs.copilotkit.ai/guides/frontend-actions
   useCopilotAction({
     name: "setThemeColor",
     parameters: [{
@@ -27,230 +31,349 @@ export default function CopilotKitPage() {
 
   return (
     <main style={{ "--copilot-kit-primary-color": themeColor } as CopilotKitCSSProperties}>
-      <YourMainContent themeColor={themeColor} />
+      <GmailInterface themeColor={themeColor} />
       <CopilotSidebar
         clickOutsideToClose={false}
         defaultOpen={true}
         labels={{
-          title: "Popup Assistant",
-          initial: "👋 Hi, there! You're chatting with an agent. This agent comes with a few tools to get you started.\n\nFor example you can try:\n- **Frontend Tools**: \"Set the theme to orange\"\n- **Shared State**: \"Write a proverb about AI\"\n- **Generative UI**: \"Get the weather in SF\"\n\nAs you interact with the agent, you'll see the UI update in real-time to reflect the agent's **state**, **tool calls**, and **progress**."
+          title: "Gmail Assistant",
+          initial: "👋 Hi! I'm your Gmail assistant. I can help you with:\n\n- **Email Management**: Check unread emails, sort by priority\n- **Draft Management**: View, create, and send drafts\n- **Unsubscribe**: Easily unsubscribe from newsletters\n- **Compose**: Create and send new emails\n\nTry saying:\n- \"Show me my important emails\"\n- \"Create a new draft\"\n- \"Unsubscribe from newsletter@example.com\"\n- \"Send an email to...\""
         }}
       />
     </main>
   );
 }
 
-function YourMainContent({ themeColor }: { themeColor: string }) {
-  // 🪁 Shared State: https://docs.copilotkit.ai/coagents/shared-state
-  const { state, setState } = useCoAgent<AgentState>({
-    name: "weatherAgent",
-    initialState: {
-      proverbs: [
-        "CopilotKit may be new, but its the best thing since sliced bread.",
-      ],
-    },
-  })
+function GmailInterface({ themeColor }: { themeColor: string }) {
+  const [activeTab, setActiveTab] = useState<'inbox' | 'drafts' | 'compose'>('inbox');
 
-  //🪁 Generative UI: https://docs.copilotkit.ai/coagents/generative-ui
+  // Email-related actions (must match tool IDs exported by the MCP)
   useCopilotAction({
-    name: "weatherTool",
-    description: "Get the weather for a given location.",
+    name: "fetchPrioritizedEmails", // tool id in src/mastra/tools/index.ts
+    description: "Get and display prioritized unread emails",
     available: "frontend",
     parameters: [
-      { name: "location", type: "string", required: true },
+      { name: "maxResults", type: "number", required: false },
     ],
-    render: ({ args, result, status }) => {
-      return <WeatherCard
-        location={args.location}
+    render: ({ result, status }) => (
+      <EmailList 
+        emails={result?.emails || []} 
+        loading={status !== 'complete'}
         themeColor={themeColor}
-        result={result}
-        status={status}
       />
+    ),
+  });
+
+  useCopilotAction({
+    name: "getDrafts", // tool id in src/mastra/tools/index.ts
+    description: "Get and display draft emails",
+    available: "frontend",
+    parameters: [
+      { name: "maxResults", type: "number", required: false },
+    ],
+    render: ({ result, status }) => (
+      <DraftsList 
+        drafts={Array.isArray(result) ? result : (result?.drafts || [])} 
+        loading={status !== 'complete'}
+        themeColor={themeColor}
+      />
+    ),
+  });
+
+  return (
+    <div className="h-screen w-screen flex justify-center items-start p-8">
+      <div className="bg-white rounded-2xl shadow-xl max-w-4xl w-full">
+        {/* Header */}
+        <div className="p-6 border-b">
+          <div className="flex justify-between items-center mb-4">
+            <h1 className="text-2xl font-bold">Gmail Management</h1>
+            <div className="flex gap-2">
+              <TabButton 
+                active={activeTab === 'inbox'} 
+                onClick={() => setActiveTab('inbox')}
+                themeColor={themeColor}
+              >
+                Inbox
+              </TabButton>
+              <TabButton 
+                active={activeTab === 'drafts'} 
+                onClick={() => setActiveTab('drafts')}
+                themeColor={themeColor}
+              >
+                Drafts
+              </TabButton>
+              <TabButton 
+                active={activeTab === 'compose'} 
+                onClick={() => setActiveTab('compose')}
+                themeColor={themeColor}
+              >
+                Compose
+              </TabButton>
+            </div>
+          </div>
+        </div>
+
+        {/* Main Content */}
+        <div className="p-6">
+          {activeTab === 'inbox' && <InboxView themeColor={themeColor} />}
+          {activeTab === 'drafts' && <DraftsView themeColor={themeColor} />}
+          {activeTab === 'compose' && <ComposeView themeColor={themeColor} />}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function TabButton({ 
+  children, 
+  active, 
+  onClick,
+  themeColor 
+}: { 
+  children: React.ReactNode;
+  active: boolean;
+  onClick: () => void;
+  themeColor: string;
+}) {
+  return (
+    <button
+      onClick={onClick}
+      className={`px-4 py-2 rounded-lg transition-all ${
+        active 
+          ? 'text-white' 
+          : 'text-gray-600 hover:bg-gray-100'
+      }`}
+      style={{ backgroundColor: active ? themeColor : undefined }}
+    >
+      {children}
+    </button>
+  );
+}
+
+function InboxView({ themeColor }: { themeColor: string }) {
+  return (
+    <div className="space-y-4">
+      <div className="flex justify-between items-center mb-4">
+        <h2 className="text-xl font-semibold">Priority Inbox</h2>
+        <button
+          className="px-4 py-2 rounded-lg text-white transition-all"
+          style={{ backgroundColor: themeColor }}
+        >
+          Refresh
+        </button>
+      </div>
+      {/* Emails will be rendered here by prioritizedEmailTool */}
+    </div>
+  );
+}
+
+function DraftsView({ themeColor }: { themeColor: string }) {
+  return (
+    <div className="space-y-4">
+      <div className="flex justify-between items-center mb-4">
+        <h2 className="text-xl font-semibold">Draft Messages</h2>
+        <button
+          className="px-4 py-2 rounded-lg text-white transition-all"
+          style={{ backgroundColor: themeColor }}
+        >
+          Refresh Drafts
+        </button>
+      </div>
+      {/* Drafts will be rendered here by getDraftsTool */}
+    </div>
+  );
+}
+
+function ComposeView({ themeColor }: { themeColor: string }) {
+  const [to, setTo] = useState('');
+  const [subject, setSubject] = useState('');
+  const [body, setBody] = useState('');
+  const [savingDraft, setSavingDraft] = useState(false);
+  const [sending, setSending] = useState(false);
+
+  useCopilotAction({
+    name: "createDraft",
+    available: "frontend",
+    render: ({ status }) => {
+      if (status === "complete") setSavingDraft(false);
+      return (
+        <div style={{ display: 'none' }} />
+      );
     },
   });
 
   useCopilotAction({
-    name: "updateWorkingMemory",
+    name: "sendMessage",
     available: "frontend",
-    render: ({ args }) => {
-      return <div style={{ backgroundColor: themeColor }} className="rounded-2xl max-w-md w-full text-white p-4">
-        <p>✨ Memory updated</p>
-        <details className="mt-2">
-          <summary className="cursor-pointer text-white">See updates</summary>
-          <pre style={{ whiteSpace: "pre-wrap", wordBreak: "break-word" }} className="overflow-x-auto text-sm bg-white/20 p-4 rounded-lg mt-2">
-            {JSON.stringify(args, null, 2)}
-          </pre>
-        </details>
-      </div>
+    render: ({ status }) => {
+      if (status === "complete") setSending(false);
+      return (
+        <div style={{ display: 'none' }} />
+      );
     },
   });
 
   return (
-    <div
-      style={{ backgroundColor: themeColor }}
-      className="h-screen w-screen flex justify-center items-center flex-col transition-colors duration-300"
-    >
-      <div className="bg-white/20 backdrop-blur-md p-8 rounded-2xl shadow-xl max-w-2xl w-full">
-        <h1 className="text-4xl font-bold text-white mb-2 text-center">Proverbs</h1>
-        <p className="text-gray-200 text-center italic mb-6">This is a demonstrative page, but it could be anything you want! 🪁</p>
-        <hr className="border-white/20 my-6" />
-        <div className="flex flex-col gap-3">
-          {state.proverbs?.map((proverb, index) => (
-            <div
-              key={index}
-              className="bg-white/15 p-4 rounded-xl text-white relative group hover:bg-white/20 transition-all"
-            >
-              <p className="pr-8">{proverb}</p>
+    <div className="space-y-4">
+      <input
+        type="email"
+        placeholder="To"
+        value={to}
+        onChange={(e) => setTo(e.target.value)}
+        className="w-full p-3 border rounded-lg"
+      />
+      <input
+        type="text"
+        placeholder="Subject"
+        value={subject}
+        onChange={(e) => setSubject(e.target.value)}
+        className="w-full p-3 border rounded-lg"
+      />
+      <textarea
+        placeholder="Message"
+        value={body}
+        onChange={(e) => setBody(e.target.value)}
+        rows={10}
+        className="w-full p-3 border rounded-lg resize-none"
+      />
+      <div className="flex justify-end gap-3">
+        <button
+          onClick={() => setSavingDraft(true)}
+          disabled={savingDraft}
+          className="px-4 py-2 rounded-lg border hover:bg-gray-50 transition-all"
+        >
+          {savingDraft ? 'Saving...' : 'Save Draft'}
+        </button>
+        <button
+          onClick={() => setSending(true)}
+          disabled={sending}
+          className="px-4 py-2 rounded-lg text-white transition-all"
+          style={{ backgroundColor: themeColor }}
+        >
+          {sending ? 'Sending...' : 'Send'}
+        </button>
+      </div>
+    </div>
+  );
+}
+
+function EmailList({ 
+  emails, 
+  loading,
+  themeColor 
+}: { 
+  emails: Email[];
+  loading: boolean;
+  themeColor: string;
+}) {
+  if (loading) {
+    return (
+      <div className="space-y-4">
+        {[1, 2, 3].map((i) => (
+          <div key={i} className="animate-pulse">
+            <div className="h-24 bg-gray-100 rounded-lg" />
+          </div>
+        ))}
+      </div>
+    );
+  }
+
+  return (
+    <div className="space-y-4">
+      {emails.map((email) => (
+        <div 
+          key={email.id}
+          className="p-4 border rounded-lg hover:shadow-md transition-all"
+        >
+          <div className="flex justify-between items-start">
+            <div>
+              <h3 className="font-medium">{email.subject}</h3>
+              <p className="text-sm text-gray-600">{email.from}</p>
+            </div>
+            <div className="flex items-center gap-2">
+              {email.priority && (
+                <div 
+                  className="px-3 py-1 rounded-full text-white text-sm"
+                  style={{ backgroundColor: themeColor }}
+                >
+                  Priority {email.priority}
+                </div>
+              )}
               <button
-                onClick={() => setState({
-                  ...state,
-                  proverbs: state.proverbs?.filter((_, i) => i !== index),
-                })}
-                className="absolute right-3 top-3 opacity-0 group-hover:opacity-100 transition-opacity 
-                  bg-red-500 hover:bg-red-600 text-white rounded-full h-6 w-6 flex items-center justify-center"
+                className="px-3 py-1 text-sm text-gray-600 hover:text-gray-900"
+                onClick={() => {
+                  // Trigger unsubscribe action
+                }}
               >
-                ✕
+                Unsubscribe
               </button>
             </div>
-          ))}
+          </div>
+          <p className="text-gray-600 mt-2">{email.snippet}</p>
+          {email.reasoning && (
+            <p className="text-sm text-gray-500 mt-2 italic">
+              {email.reasoning}
+            </p>
+          )}
         </div>
-        {state.proverbs?.length === 0 && <p className="text-center text-white/80 italic my-8">
-          No proverbs yet. Ask the assistant to add some!
-        </p>}
-      </div>
+      ))}
+      {emails.length === 0 && (
+        <p className="text-center text-gray-500 py-8">
+          No emails to display. Your inbox is empty!
+        </p>
+      )}
     </div>
   );
 }
 
-// Weather card component where the location and themeColor are based on what the agent
-// sets via tool calls.
-function WeatherCard({
-  location,
-  themeColor,
-  result,
-  status
-}: {
-  location?: string,
-  themeColor: string,
-  result: WeatherToolResult,
-  status: "inProgress" | "executing" | "complete"
+function DraftsList({ 
+  drafts, 
+  loading,
+  themeColor 
+}: { 
+  drafts: Email[];
+  loading: boolean;
+  themeColor: string;
 }) {
-  if (status !== "complete") {
+  if (loading) {
     return (
-      <div
-        className="rounded-xl shadow-xl mt-6 mb-4 max-w-md w-full"
-        style={{ backgroundColor: themeColor }}
-      >
-        <div className="bg-white/20 p-4 w-full">
-          <p className="text-white animate-pulse">Loading weather for {location}...</p>
-        </div>
+      <div className="space-y-4">
+        {[1, 2, 3].map((i) => (
+          <div key={i} className="animate-pulse">
+            <div className="h-20 bg-gray-100 rounded-lg" />
+          </div>
+        ))}
       </div>
-    )
+    );
   }
 
   return (
-    <div
-      style={{ backgroundColor: themeColor }}
-      className="rounded-xl shadow-xl mt-6 mb-4 max-w-md w-full"
-    >
-      <div className="bg-white/20 p-4 w-full">
-        <div className="flex items-center justify-between">
-          <div>
-            <h3 className="text-xl font-bold text-white capitalize">{location}</h3>
-            <p className="text-white">Current Weather</p>
-          </div>
-          <WeatherIcon conditions={result?.conditions} />
-        </div>
-
-        <div className="mt-4 flex items-end justify-between">
-          <div className="text-3xl font-bold text-white">
-            <span className="">
-              {result?.temperature}° C
-            </span>
-            <span className="text-sm text-white/50">
-              {" / "}
-              {((result?.temperature * 9) / 5 + 32).toFixed(1)}° F
-            </span>
-          </div>
-          <div className="text-sm text-white">{result?.conditions}</div>
-        </div>
-
-        <div className="mt-4 pt-4 border-t border-white">
-          <div className="grid grid-cols-3 gap-2 text-center">
+    <div className="space-y-4">
+      {drafts.map((draft) => (
+        <div 
+          key={draft.id}
+          className="p-4 border rounded-lg hover:shadow-md transition-all"
+        >
+          <div className="flex justify-between items-start">
             <div>
-              <p className="text-white text-xs">Humidity</p>
-              <p className="text-white font-medium">{result?.humidity}%</p>
+              <h3 className="font-medium">{draft.subject || 'No Subject'}</h3>
+              <p className="text-sm text-gray-600">{draft.from || 'No recipient'}</p>
             </div>
-            <div>
-              <p className="text-white text-xs">Wind</p>
-              <p className="text-white font-medium">{result?.windSpeed} mph</p>
-            </div>
-            <div>
-              <p className="text-white text-xs">Feels Like</p>
-              <p className="text-white font-medium">{result?.feelsLike}°</p>
-            </div>
+            <button
+              className="px-3 py-1 rounded-lg text-white text-sm"
+              style={{ backgroundColor: themeColor }}
+            >
+              Edit
+            </button>
           </div>
+          <p className="text-gray-600 mt-2">{draft.snippet}</p>
         </div>
-      </div>
+      ))}
+      {drafts.length === 0 && (
+        <p className="text-center text-gray-500 py-8">
+          No drafts found. Start composing to create one!
+        </p>
+      )}
     </div>
-  );
-}
-
-function WeatherIcon({ conditions }: { conditions: string }) {
-  if (!conditions) return null;
-
-  if (
-    conditions.toLowerCase().includes("clear") ||
-    conditions.toLowerCase().includes("sunny")
-  ) {
-    return <SunIcon />;
-  }
-
-  if (
-    conditions.toLowerCase().includes("rain") ||
-    conditions.toLowerCase().includes("drizzle") ||
-    conditions.toLowerCase().includes("snow") ||
-    conditions.toLowerCase().includes("thunderstorm")
-  ) {
-    return <RainIcon />;
-  }
-
-  if (
-    conditions.toLowerCase().includes("fog") ||
-    conditions.toLowerCase().includes("cloud") ||
-    conditions.toLowerCase().includes("overcast")
-  ) {
-    return <CloudIcon />;
-  }
-
-  return <CloudIcon />;
-}
-
-// Simple sun icon for the weather card
-function SunIcon() {
-  return (
-    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" className="w-14 h-14 text-yellow-200">
-      <circle cx="12" cy="12" r="5" />
-      <path d="M12 1v2M12 21v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M1 12h2M21 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42" strokeWidth="2" stroke="currentColor" />
-    </svg>
-  );
-}
-
-function RainIcon() {
-  return (
-    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" className="w-14 h-14 text-blue-200">
-      {/* Cloud */}
-      <path d="M7 15a4 4 0 0 1 0-8 5 5 0 0 1 10 0 4 4 0 0 1 0 8H7z" fill="currentColor" opacity="0.8" />
-      {/* Rain drops */}
-      <path d="M8 18l2 4M12 18l2 4M16 18l2 4" stroke="currentColor" strokeWidth="2" strokeLinecap="round" fill="none" />
-    </svg>
-  );
-}
-
-function CloudIcon() {
-  return (
-    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" className="w-14 h-14 text-gray-200">
-      <path d="M7 15a4 4 0 0 1 0-8 5 5 0 0 1 10 0 4 4 0 0 1 0 8H7z" fill="currentColor" />
-    </svg>
   );
 }
