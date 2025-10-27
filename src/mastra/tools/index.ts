@@ -1,106 +1,191 @@
 import { createTool } from '@mastra/core/tools';
 import { z } from 'zod';
 
-interface GeocodingResponse {
-  results: {
-    latitude: number;
-    longitude: number;
-    name: string;
-  }[];
-}
-interface WeatherResponse {
-  current: {
-    time: string;
-    temperature_2m: number;
-    apparent_temperature: number;
-    relative_humidity_2m: number;
-    wind_speed_10m: number;
-    wind_gusts_10m: number;
-    weather_code: number;
-  };
-}
 
-export type WeatherToolResult = z.infer<typeof WeatherToolResultSchema>;
+// import { WeatherToolResultSchema } from '../types/types';
+// import { 
+//   FetchEmailsInputSchema,
+//   FetchEmailsOutputSchema,
+//   FetchPrioritizedEmailsInputSchema,
+//   FetchPrioritizedEmailsOutputSchema
+// } from '../types/types';
+import {
+  CreateDraftInputSchema,
+  // CreateDraftInputSchema,
+  // SendMessageInputSchema,
+  
+  // CreateDraftOutputSchema,
+  // SendMessageOutputSchema,
+  DraftListOutputSchema,
+  UpdateAndSendDraftOutputSchema,
+  UpdateDraftInputSchema,
+  UpdateDraftOutputSchema,
+  DeleteDraftInputSchema,
+  DeleteDraftOutputSchema
+} from '../types/gmail';
+import { 
+  // getUnreadEmails, 
+  // getPrioritizedEmails,
+  getDraftEmails,
+  updateDraftEmail,
+  sendMessage,
+  deleteDraftEmail
+  // createDraft,
+  // sendMessage
+} from '../functions/gmail-util-funcs';
+// import { unsubscribeFromSender } from '../functions/personal_agent_funcs';
+// import { UnsubscribeInputSchema, UnsubscribeOutputSchema } from '../types/types';
 
-const WeatherToolResultSchema = z.object({
-  temperature: z.number(),
-  feelsLike: z.number(),
-  humidity: z.number(),
-  windSpeed: z.number(),
-  windGust: z.number(),
-  conditions: z.string(),
-  location: z.string(),
-});
-
-export const weatherTool = createTool({
-  id: 'get-weather',
-  description: 'Get current weather for a location',
-  inputSchema: z.object({
-    location: z.string().describe('City name'),
-  }),
-  outputSchema: WeatherToolResultSchema,
-  execute: async ({ context }) => {
-    return await getWeather(context.location);
+export const getDraftsTool = createTool({
+  id: 'getDrafts',
+  description: 'get all drafted emails',
+  outputSchema: DraftListOutputSchema,
+  execute: async () => {
+    console.log("entered inside the get draft tool")
+    const drafts = await getDraftEmails(15);
+    return drafts;
   },
 });
 
-const getWeather = async (location: string) => {
-  const geocodingUrl = `https://geocoding-api.open-meteo.com/v1/search?name=${encodeURIComponent(location)}&count=1`;
-  const geocodingResponse = await fetch(geocodingUrl);
-  const geocodingData = (await geocodingResponse.json()) as GeocodingResponse;
+export const updateDraftTool = createTool({
+  id: 'updateDrafts',
+  description: 'update the drafted mails by improving the quality of content',
+  inputSchema:UpdateDraftInputSchema,
+  outputSchema: UpdateDraftOutputSchema,
+  execute: async ({context}) => {
+    console.log("entered inside the update draft tool")
+    const draft = await updateDraftEmail(context);
+    console.log("draft i get back",draft)
+    // Ensure the returned object matches the output schema
+    return {
+      id: draft.id,
+      subject: draft.subject,
+      to: draft.to,
+      userId: "me",
+      snippet: draft.snippet ?? "",
+    };
+  },
+});
 
-  if (!geocodingData.results?.[0]) {
-    throw new Error(`Location '${location}' not found`);
+export const updateAndSendDraftTool = createTool({
+  id: "updateAndSendDrafts",
+  description: 'update the drafted mails by improving the quality of content and then send the email',
+  inputSchema: UpdateDraftInputSchema,
+  outputSchema: UpdateAndSendDraftOutputSchema,
+  execute: async ({ context }) => {
+    console.log("entered inside the update and send draft tool");
+    try {
+      // 1. Update the draft with improved content
+      const draft = await updateDraftEmail(context);
+      console.log("draft i get back", draft);
+      // 2. Send the updated draft
+      try {
+        await sendMessage({
+          userId: context.userId || "me",
+          to: draft.to,
+          subject: draft.subject,
+          snippet: draft.snippet,
+        });
+        return {
+          id: draft.id,
+          subject: draft.subject,
+          to: draft.to,
+          userId: context.userId || "me",
+          snippet: draft.snippet ?? "",
+          status: "send-successfully" as "send-successfully",
+        };
+      } catch (sendErr) {
+        console.error("Failed to send email after update", sendErr);
+        return {
+          id: draft.id,
+          subject: draft.subject,
+          to: draft.to,
+          userId: context.userId || "me",
+          snippet: draft.snippet ?? "",
+          status: "updated but not send " as "updated but not send ",
+        };
+      }
+    } catch (err) {
+      console.error("Failed to update and send draft", err);
+      return {
+        id: context.id,
+        subject: context.subject,
+        to: context.to,
+        userId: context.userId || "me",
+        snippet: context.snippet ?? "",
+        status: "not able to send" as "not able to send",
+      };
+    }
   }
+});
 
-  const { latitude, longitude, name } = geocodingData.results[0];
 
-  const weatherUrl = `https://api.open-meteo.com/v1/forecast?latitude=${latitude}&longitude=${longitude}&current=temperature_2m,apparent_temperature,relative_humidity_2m,wind_speed_10m,wind_gusts_10m,weather_code`;
+export const deleteDraftTool = createTool({
+  id: 'deleteDrafts',
+  description: 'delete the drafted mails',
+  inputSchema: DeleteDraftInputSchema,
+  outputSchema: DeleteDraftOutputSchema,
+  execute: async ({ context }) => {
+    console.log("entered inside the delete draft tool");
+    const result = await deleteDraftEmail(context);
+    console.log("delete result", result);
+    return result;
+  },
+});
 
-  const response = await fetch(weatherUrl);
-  const data = (await response.json()) as WeatherResponse;
 
-  return {
-    temperature: data.current.temperature_2m,
-    feelsLike: data.current.apparent_temperature,
-    humidity: data.current.relative_humidity_2m,
-    windSpeed: data.current.wind_speed_10m,
-    windGust: data.current.wind_gusts_10m,
-    conditions: getWeatherCondition(data.current.weather_code),
-    location: name,
-  };
-};
+// export const emailTool = createTool({
+//   id: "fetchEmails",
+//   description: "Retrieve unread Gmail messages. Use this when user asks to check, view, or get their unread emails. Supports custom search queries and limiting number of results.",
+//   inputSchema: FetchEmailsInputSchema,
+//   outputSchema: FetchEmailsOutputSchema,
+//   execute: async ({ context }) => {
+//     console.log("Executing email tool")
+//     const emails = await getUnreadEmails(context.maxResults, context.query);
+//     return { emails };
+//   },
+// });
 
-function getWeatherCondition(code: number): string {
-  const conditions: Record<number, string> = {
-    0: 'Clear sky',
-    1: 'Mainly clear',
-    2: 'Partly cloudy',
-    3: 'Overcast',
-    45: 'Foggy',
-    48: 'Depositing rime fog',
-    51: 'Light drizzle',
-    53: 'Moderate drizzle',
-    55: 'Dense drizzle',
-    56: 'Light freezing drizzle',
-    57: 'Dense freezing drizzle',
-    61: 'Slight rain',
-    63: 'Moderate rain',
-    65: 'Heavy rain',
-    66: 'Light freezing rain',
-    67: 'Heavy freezing rain',
-    71: 'Slight snow fall',
-    73: 'Moderate snow fall',
-    75: 'Heavy snow fall',
-    77: 'Snow grains',
-    80: 'Slight rain showers',
-    81: 'Moderate rain showers',
-    82: 'Violent rain showers',
-    85: 'Slight snow showers',
-    86: 'Heavy snow showers',
-    95: 'Thunderstorm',
-    96: 'Thunderstorm with slight hail',
-    99: 'Thunderstorm with heavy hail',
-  };
-  return conditions[code] || 'Unknown';
-}
+// export const prioritizedEmailTool = createTool({
+//   id: "fetchPrioritizedEmails",
+//   description: "Get unread emails sorted by importance using AI and heuristics. Use this when user wants to see their most important or urgent emails first, or needs help managing email overload.",
+//   inputSchema: FetchPrioritizedEmailsInputSchema,
+//   outputSchema: FetchPrioritizedEmailsOutputSchema,
+//   execute: async ({ context }) => {
+//     console.log("Executing prioritized email tool");
+//     const emails = await getPrioritizedEmails(context.maxResults);
+//     return { emails };
+//   },
+// });
+
+// export const unsubscribeTool = createTool({
+//   id: 'unsubscribeEmail',
+//   description: 'Unsubscribe from email newsletters or mailing lists. Use this when user wants to stop receiving emails from a specific sender. Handles both List-Unsubscribe headers and common unsubscribe patterns.',
+//   inputSchema: UnsubscribeInputSchema,
+//   outputSchema: UnsubscribeOutputSchema,
+//   execute: async ({ context }) => {
+//     const res = await unsubscribeFromSender(context.messageId);
+//     return res;
+//   },
+// });
+// export const createDraftTool = createTool({
+//   id: 'createDraft',
+//   description: 'Create a new Gmail draft message. Use this when user wants to compose or start a new email without sending it immediately. Supports both simple text messages and raw MIME messages.',
+//   inputSchema: CreateDraftInputSchema,
+//   outputSchema: CreateDraftOutputSchema,
+//   execute: async ({ context }) => {
+//     const draft = await createDraft(context);
+//     return draft;
+//   },
+// });
+
+// export const sendMessageTool = createTool({
+//   id: 'sendMessage',
+//   description: 'Send a new Gmail message immediately. Use this when user wants to send an email right away. Supports both simple text messages and raw MIME messages.',
+//   inputSchema: SendMessageInputSchema,
+//   outputSchema: SendMessageOutputSchema,
+//   execute: async ({ context }) => {
+//     const message = await sendMessage(context);
+//     return message;
+//   },
+// });

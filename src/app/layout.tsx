@@ -1,36 +1,37 @@
-import type { Metadata } from "next";
-import { Geist, Geist_Mono } from "next/font/google";
-import { CopilotKit } from "@copilotkit/react-core";
-import "./globals.css";
-import "@copilotkit/react-ui/styles.css";
+import type React from "react"
+import type { Metadata } from "next"
+import { Geist, Geist_Mono } from "next/font/google"
+import { Analytics } from "@vercel/analytics/next"
+import { CopilotKit } from "@copilotkit/react-core"
+import "./globals.css"
+import "@copilotkit/react-ui/styles.css"
+import { ThemeProvider } from "@/components/theme-provider"
+import Providers from "@/components/provider"
 
-const geistSans = Geist({
-  variable: "--font-geist-sans",
-  subsets: ["latin"],
-});
-
-const geistMono = Geist_Mono({
-  variable: "--font-geist-mono",
-  subsets: ["latin"],
-});
+const geist = Geist({ subsets: ["latin"] })
+const geistMono = Geist_Mono({ subsets: ["latin"] })
 
 export const metadata: Metadata = {
-  title: "Nosana Mastra Agent Kit",
-  description: "An example of using CopilotKit with Mastra agents.",
-};
+  title: "GmailAgent - AI-Powered Email Management",
+  description: "Manage your Gmail efficiently with AI assistance",
+  generator: "v0.app",
+}
 
 export default function RootLayout({
   children,
 }: Readonly<{
-  children: React.ReactNode;
+  children: React.ReactNode
 }>) {
   return (
-    <html lang="en">
-      <body className={`${geistSans.variable} ${geistMono.variable} antialiased`}>
-        <CopilotKit runtimeUrl="/api/copilotkit" agent="weatherAgent">
-          {children}
-        </CopilotKit>
+    <html lang="en" suppressHydrationWarning>
+      <body className={`${geist.className} antialiased`}>
+        <ThemeProvider attribute="class" defaultTheme="system" enableSystem>
+          <CopilotKit runtimeUrl="/api/copilotkit" agent="personalagent">
+             {children}
+          </CopilotKit>
+        </ThemeProvider>
+        <Analytics />
       </body>
     </html>
-  );
+  )
 }

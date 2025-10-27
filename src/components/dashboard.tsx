@@ -1,0 +1,171 @@
+"use client"
+
+import { useCopilotAction } from "@copilotkit/react-core"
+import { type CopilotKitCSSProperties, CopilotSidebar } from "@copilotkit/react-ui"
+import { useState } from "react"
+import { type Email } from "@/mastra/agents/inbox-agent"
+import InboxContainer from "./inbox-container"
+import DraftsContainer from "./drafts-container"
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
+import { Mail, FileText, LogOut, Settings, Bell, Search } from "lucide-react"
+import { Button } from "@/components/ui/button"
+import { ThemeToggle } from "./theme-toggle"
+import EmailViewerModal from "./email-viewer-modal"
+
+interface DashboardProps {
+  onLogout: () => void
+}
+
+export default function Dashboard({ onLogout }: DashboardProps) {
+  const [themeColor, setThemeColor] = useState("#6366f1")
+  const [activeTab, setActiveTab] = useState("inbox")
+  const [selectedItem, setSelectedItem] = useState<Email | null>(null)
+
+  useCopilotAction({
+    name: "setThemeColor",
+    parameters: [
+      {
+        name: "themeColor",
+        description: "The theme color to set",
+        required: true,
+      },
+    ],
+    handler({ themeColor }) {
+      setThemeColor(themeColor)
+    },
+  })
+
+  useCopilotAction({
+    name: "getDrafts",
+    description: "Get and display draft emails",
+    available: "frontend",
+    render: ({ args }) => {
+      return (
+        <div style={{ backgroundColor: themeColor }} className="rounded-2xl max-w-md w-full text-white p-4">
+          <p className="font-semibold">✓ Drafts Updated</p>
+          <details className="mt-2">
+            <summary className="cursor-pointer text-white text-sm">View details</summary>
+            <pre
+              style={{ whiteSpace: "pre-wrap", wordBreak: "break-word" }}
+              className="overflow-x-auto text-xs bg-white/20 p-3 rounded-lg mt-2"
+            >
+              {JSON.stringify(args, null, 2)}
+            </pre>
+          </details>
+        </div>
+      )
+    },
+  })
+
+  return (
+    <div
+      style={{ "--copilot-kit-primary-color": themeColor } as CopilotKitCSSProperties}
+      className="h-screen w-screen flex bg-background"
+    >
+      {/* Main Content */}
+      <div className="flex-1 flex flex-col overflow-hidden">
+        {/* Header */}
+        <div className="border-b border-border bg-gradient-to-r from-card/80 to-card/50 dark:from-card/50 dark:to-card/30 backdrop-blur-xl px-6 py-4 flex items-center justify-between sticky top-0 z-20 shadow-sm">
+          <div className="flex items-center gap-4">
+            <div className="w-12 h-12 bg-gradient-to-br from-primary to-accent rounded-lg flex items-center justify-center shadow-lg hover:shadow-xl transition-all">
+              <Mail className="w-6 h-6 text-primary-foreground" />
+            </div>
+            <div>
+              <h1 className="text-2xl font-bold bg-gradient-to-r from-primary to-accent bg-clip-text text-transparent">
+                GmailAgent
+              </h1>
+              <p className="text-xs text-muted-foreground">AI-Powered Email Management</p>
+            </div>
+          </div>
+
+          <div className="flex items-center gap-3">
+            <Button
+              variant="ghost"
+              size="icon"
+              className="rounded-full hover:bg-primary/10 transition-all hover:scale-110"
+            >
+              <Search className="w-5 h-5" />
+            </Button>
+            <Button
+              variant="ghost"
+              size="icon"
+              className="rounded-full hover:bg-primary/10 transition-all hover:scale-110 relative"
+            >
+              <Bell className="w-5 h-5" />
+              <span className="absolute top-1 right-1 w-2 h-2 bg-destructive rounded-full"></span>
+            </Button>
+            <ThemeToggle />
+            <Button
+              variant="ghost"
+              size="icon"
+              className="rounded-full hover:bg-primary/10 transition-all hover:scale-110"
+            >
+              <Settings className="w-5 h-5" />
+            </Button>
+            <Button
+              onClick={onLogout}
+              variant="ghost"
+              size="sm"
+              className="gap-2 hover:bg-destructive/10 hover:text-destructive transition-all rounded-full ml-2"
+            >
+              <LogOut className="w-4 h-4" />
+              <span className="hidden sm:inline text-sm">Logout</span>
+            </Button>
+          </div>
+        </div>
+
+        {/* Content Area */}
+        <div className="flex-1 overflow-hidden">
+          <Tabs value={activeTab} onValueChange={setActiveTab} className="h-full flex flex-col">
+            <TabsList className="w-full rounded-none border-b border-border bg-card/30 backdrop-blur-sm px-6 py-0 gap-8">
+              <TabsTrigger
+                value="inbox"
+                className="flex items-center gap-2 data-[state=active]:border-b-2 data-[state=active]:border-primary rounded-none"
+              >
+                <Mail className="w-4 h-4" />
+                <span>Inbox</span>
+              </TabsTrigger>
+              <TabsTrigger
+                value="drafts"
+                className="flex items-center gap-2 data-[state=active]:border-b-2 data-[state=active]:border-primary rounded-none"
+              >
+                <FileText className="w-4 h-4" />
+                <span>Drafts</span>
+              </TabsTrigger>
+            </TabsList>
+
+            <TabsContent value="inbox" className="flex-1 overflow-auto">
+              <InboxContainer onEmailSelect={setSelectedItem} />
+            </TabsContent>
+
+            <TabsContent value="drafts" className="flex-1 overflow-auto">
+              <DraftsContainer onDraftSelect={setSelectedItem} />
+            </TabsContent>
+
+            {selectedItem && (
+              <EmailViewerModal
+                email={selectedItem}
+                onClose={() => setSelectedItem(null)}
+              />
+            )}
+          </Tabs>
+        </div>
+      </div>
+
+      {/* CopilotKit Sidebar */}
+      <CopilotSidebar
+        clickOutsideToClose={false}
+        defaultOpen={true}
+        labels={{
+          title: "Gmail Assistant",
+          initial:
+            'Hi! I\'m your Gmail assistant. I can help you with:\n\n- Email Management: Check unread emails, sort by priority\n- Draft Management: View, create, and send drafts\n- Compose: Create and send new emails\n- Search: Find emails by subject or sender\n\nTry saying:\n- "Show me my important emails"\n- "Create a new draft"\n- "Send an email to..."\n- "Search for emails from..."',
+        }}
+      />
+    </div>
+  )
+}
+
+
+
+
