@@ -4,27 +4,49 @@ import React from "react"
 import { Send, Edit2, Trash2, Plus, X } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { useState } from "react"
-import { useCoAgent } from "@copilotkit/react-core"
+import { useCoAgent, useCopilotAction } from "@copilotkit/react-core"
 import { type Email } from "@/mastra/agents/inbox-agent"
 import { type DraftsState, initialDraftsState } from "@/mastra/agents/drafts-agent"
 
 interface DraftsContainerProps {
   onDraftSelect: (draft: Email) => void
+  themeColor:string
 }
 
-export default function DraftsContainer({ onDraftSelect }: DraftsContainerProps) {
+export default function DraftsContainer({ onDraftSelect, themeColor }: DraftsContainerProps) {
   const [hoveredId, setHoveredId] = useState<string | null>(null)
   const [showNewDraftModal, setShowNewDraftModal] = useState(false)
   const [editingDraft, setEditingDraft] = useState<Email | null>(null)
   const [newDraft, setNewDraft] = useState({
     subject: "",
     to: "",
-    body: "",
+    snippet: "",
   })
 
   const { state, setState } = useCoAgent<DraftsState>({
     name: "personalagent",
     initialState: initialDraftsState,
+  })
+  useCopilotAction({
+    name: "getDrafts",
+    description: "Get and display draft emails",
+    available: "frontend",
+    render: ({ args }) => {
+      return (
+        <div style={{ backgroundColor: themeColor }} className="rounded-2xl max-w-md w-full text-white p-4">
+          <p className="font-semibold">✓ Drafts Updated</p>
+          <details className="mt-2">
+            <summary className="cursor-pointer text-white text-sm">View details</summary>
+            <pre
+              style={{ whiteSpace: "pre-wrap", wordBreak: "break-word" }}
+              className="overflow-x-auto text-xs bg-white/20 p-3 rounded-lg mt-2"
+            >
+              {JSON.stringify(args, null, 2)}
+            </pre>
+          </details>
+        </div>
+      )
+    },
   })
 
   const handleCreateDraft = (e: React.FormEvent) => {
@@ -35,10 +57,8 @@ export default function DraftsContainer({ onDraftSelect }: DraftsContainerProps)
         subject: newDraft.subject,
         from: "you@gmail.com",
         to: newDraft.to,
-        snippet: newDraft.body.substring(0, 100) || "No content",
-        body: newDraft.body,
+        snippet: newDraft.snippet.substring(0, 100) || "No content",
       }
-      
       if (editingDraft) {
         // Update existing draft
         setState({
@@ -55,7 +75,7 @@ export default function DraftsContainer({ onDraftSelect }: DraftsContainerProps)
         })
       }
       
-      setNewDraft({ subject: "", to: "", body: "" })
+      setNewDraft({ subject: "", to: "", snippet: "" })
       setShowNewDraftModal(false)
       setEditingDraft(null)
     }
@@ -66,7 +86,7 @@ export default function DraftsContainer({ onDraftSelect }: DraftsContainerProps)
     setNewDraft({
       subject: draft.subject,
       to: draft.to,
-      body: draft.body || "",
+      snippet: draft.snippet || "",
     })
     setShowNewDraftModal(true)
   }
@@ -94,7 +114,7 @@ export default function DraftsContainer({ onDraftSelect }: DraftsContainerProps)
         <Button
           onClick={() => {
             setEditingDraft(null)
-            setNewDraft({ subject: "", to: "", body: "" })
+            setNewDraft({ subject: "", to: "", snippet: "" })
             setShowNewDraftModal(true)
           }}
           className="bg-gradient-to-r from-primary to-accent hover:shadow-lg hover:shadow-primary/30 text-primary-foreground rounded-full gap-2 transition-all duration-300 hover:scale-105"
@@ -233,8 +253,8 @@ export default function DraftsContainer({ onDraftSelect }: DraftsContainerProps)
                 <label className="text-sm font-medium text-foreground mb-2 block">Message</label>
                 <textarea
                   placeholder="Write your message..."
-                  value={newDraft.body}
-                  onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) => setNewDraft({ ...newDraft, body: e.target.value })}
+                  value={newDraft.snippet}
+                  onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) => setNewDraft({ ...newDraft, snippet: e.target.value })}
                   rows={4}
                   className="w-full px-3 py-2 bg-muted border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary transition-all resize-none"
                 />

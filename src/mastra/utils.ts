@@ -33,7 +33,7 @@ export function getOAuth2Client() {
 
   return oAuth2Client;
 }
-
+  
   /**
    * Send a message for the authenticated user.
    * Accepts the same inputs as createDraft: either `raw` or `to`/`subject`/`body`.

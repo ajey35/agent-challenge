@@ -35,27 +35,7 @@ export default function Dashboard({ onLogout }: DashboardProps) {
     },
   })
 
-  useCopilotAction({
-    name: "getDrafts",
-    description: "Get and display draft emails",
-    available: "frontend",
-    render: ({ args }) => {
-      return (
-        <div style={{ backgroundColor: themeColor }} className="rounded-2xl max-w-md w-full text-white p-4">
-          <p className="font-semibold">✓ Drafts Updated</p>
-          <details className="mt-2">
-            <summary className="cursor-pointer text-white text-sm">View details</summary>
-            <pre
-              style={{ whiteSpace: "pre-wrap", wordBreak: "break-word" }}
-              className="overflow-x-auto text-xs bg-white/20 p-3 rounded-lg mt-2"
-            >
-              {JSON.stringify(args, null, 2)}
-            </pre>
-          </details>
-        </div>
-      )
-    },
-  })
+  
 
   return (
     <div
@@ -135,11 +115,11 @@ export default function Dashboard({ onLogout }: DashboardProps) {
             </TabsList>
 
             <TabsContent value="inbox" className="flex-1 overflow-auto">
-              <InboxContainer onEmailSelect={setSelectedItem} />
+              <InboxContainer  themeColor={themeColor}  onEmailSelect={setSelectedItem} />
             </TabsContent>
 
             <TabsContent value="drafts" className="flex-1 overflow-auto">
-              <DraftsContainer onDraftSelect={setSelectedItem} />
+              <DraftsContainer  themeColor={themeColor}  onDraftSelect={setSelectedItem} />
             </TabsContent>
 
             {selectedItem && (

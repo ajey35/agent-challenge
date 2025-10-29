@@ -11,26 +11,14 @@ export const DraftEmailSchema = z.object({
 
 
 
+
+
 // Create Draft Input Schema
-export const CreateDraftInputSchema = z.object({
-  userId: z.string().default('me'),
-  to: z.string().optional(),
-  subject: z.string().optional(),
-  snippet: z.string().optional(),
-}).refine(
-  data => !!((data.to && data.subject && data.snippet)),
-  { message: "Either 'raw' or (to, subject, body) must be provided" }
-);
+export const CreateDraftInputSchema = z.object({ prompt:z.string().describe("Prompt to Create the Draft Mail"), });
 
 
 // Update Draft Input Schema
-export const UpdateDraftInputSchema = z.object({
-  userId: z.string().default('me'),
-  id: z.string(), // draft id (required for update)
-  to: z.string(),
-  subject: z.string(),
-  snippet: z.string(),
-});
+export const UpdateDraftInputSchema = z.object({prompt:z.string().describe("Prompt to Update the Draft Mail"),id: z.string().describe("Draft ID to be updated")});
 
 export const UpdateDraftOutputSchema = z.object({
   userId: z.string().default('me'),
@@ -63,7 +51,9 @@ export const DeleteDraftOutputSchema = z.object({
 
 
 // Send Message Input Schema
-export const SendMessageInputSchema = CreateDraftInputSchema;
+export const SendMessageInputSchema =  z.object({
+  prompt:z.string().describe("Prompt to Send the Mail"),
+});
 
 // Output Schemas
 export const DraftListOutputSchema = z.array(DraftEmailSchema);
@@ -72,12 +62,15 @@ export const CreateDraftOutputSchema = z.object({
   message: z.object({
     id: z.string(),
     threadId: z.string().optional(),
+    mail:DraftEmailSchema
   }),
 });
 export const SendMessageOutputSchema = z.object({
   id: z.string(),
   threadId: z.string().optional(),
   labelIds: z.array(z.string()).optional(),
+  status: z.string().optional(),
+  mail: z.string().optional(),
 });
 
 // Types

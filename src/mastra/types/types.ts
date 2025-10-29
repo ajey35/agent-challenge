@@ -31,7 +31,7 @@ export const PrioritizedEmailSchema = EmailSchema.extend({
 });
 
 export const FetchEmailsOutputSchema = z.object({
-  emails: z.array(EmailSchema),
+  UnReadEmails: z.array(EmailSchema),
 });
 
 export const FetchPrioritizedEmailsInputSchema = z.object({
@@ -42,7 +42,7 @@ export const FetchPrioritizedEmailsInputSchema = z.object({
 });
 
 export const FetchPrioritizedEmailsOutputSchema = z.object({
-  emails: z.array(PrioritizedEmailSchema),
+  ImportantEmails: z.array(PrioritizedEmailSchema),
 });
 
 // Unsubscribe schemas

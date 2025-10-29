@@ -8,26 +8,25 @@ export const EmailSchema = z.object({
   from: z.string(),
   to: z.string(),
   snippet: z.string(),
-  body: z.string().optional(),
 })
 
 export type Email = z.infer<typeof EmailSchema>
 
 export const InboxStateSchema = z.object({
-  inboxEmails: z.array(EmailSchema).default([]),
+  emails: z.array(EmailSchema).default([]),
 })
 
 export type InboxState = z.infer<typeof InboxStateSchema>
 
 export const initialInboxState: InboxState = {
-  inboxEmails: [
+  emails: [
     {
       id: "email-1",
       subject: "Meeting Tomorrow at 2 PM",
       from: "boss@company.com",
       to: "you@gmail.com",
       snippet: "Don't forget about our meeting tomorrow at 2 PM to discuss the Q4 roadmap and project timelines.",
-      body: "Don't forget about our meeting tomorrow at 2 PM to discuss the Q4 roadmap and project timelines. Please come prepared with your updates.",
+
     },
     {
       id: "email-2",
@@ -35,7 +34,6 @@ export const initialInboxState: InboxState = {
       from: "support@gmailagent.com",
       to: "you@gmail.com",
       snippet: "Thanks for signing up! Here's how to get started with your new email management assistant.",
-      body: "Thanks for signing up! Here's how to get started with your new email management assistant. You can now manage all your emails efficiently with AI-powered features.",
     },
   ],
 }

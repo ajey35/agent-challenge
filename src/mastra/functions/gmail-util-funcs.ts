@@ -5,12 +5,8 @@ import { z } from "zod";
 import { type UnsubscribeOutputSchema } from "../types/types";
 import {
   DraftEmail,
-  CreateDraftInput,
-  SendMessageInput,
   CreateDraftOutput,
   SendMessageOutput,
-  CreateDraftInputSchema,
-  SendMessageInputSchema,
  UpdateDraftOutputSchema
 } from "../types/gmail";
 import {
@@ -270,54 +266,83 @@ export async function getDraftEmails(maxResults = 10): Promise<DraftEmail[]> {
  * @param options Draft creation options including recipient, subject, and body
  * @returns Created draft information
  */
-// export async function createDraft(options: CreateDraftInput): Promise<CreateDraftOutput> {
-//   try {
-//     // Validate input
-//     const validatedOptions = CreateDraftInputSchema.parse(options);
-//     const { userId = "me", raw, to, subject, body } = validatedOptions;
+export async function createDraft(prompt: string): Promise<CreateDraftOutput> {
+  try {
+    // Extract email components from the prompt using Gemini
+    const emailPrompt = `You are a professional email writing assistant.
+Based on the following prompt, extract and generate email components.
+Return ONLY a valid JSON object in this format:
+{
+  "to": "email@address.com",
+  "subject": "Clear subject line",
+  "body": "Professional email body"
+}
 
-//     const oAuth2Client = getOAuth2Client();
-//     const gmail = google.gmail({ version: "v1", auth: oAuth2Client });
+User's prompt:
+${prompt}
+`;
 
-//     const draftBody: DraftBody = { message: {} };
+    const result = await model.generateContent(emailPrompt);
+    const response = await result.response;
+    const content = response.text().trim();
 
-//     if (raw) {
-//       draftBody.message.raw = raw;
-//     } else if (to && subject && typeof body === "string") {
-//       const rfc2822 = [
-//         `To: ${to}`,
-//         `Subject: ${subject}`,
-//         "Content-Type: text/plain; charset=UTF-8",
-//         "",
-//         body,
-//       ].join("\r\n");
-
-//       const encoded = Buffer.from(rfc2822, "utf8").toString("base64");
-//       const base64url = encoded.replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, "");
-//       draftBody.message.raw = base64url;
-//     }
-
-//     const res = await gmail.users.drafts.create({ 
-//       userId, 
-//       requestBody: draftBody 
-//     });
+    // Parse Gemini response
+    const emailComponents = JSON.parse(content.replace(/```json|```/g, '').trim());
     
-//     if (!res.data.id || !res.data.message?.id) {
-//       throw new Error('Invalid response from Gmail API: missing required fields');
-//     }
+    if (!emailComponents.to || !emailComponents.subject || !emailComponents.body) {
+      throw new Error('Invalid email components generated from prompt');
+    }
+
+    const oAuth2Client = getOAuth2Client();
+    const gmail = google.gmail({ version: "v1", auth: oAuth2Client });
+
+    // Create RFC2822 formatted email
+    const rfc2822 = [
+      `To: ${emailComponents.to}`,
+      `Subject: ${emailComponents.subject}`,
+      "Content-Type: text/plain; charset=UTF-8",
+      "",
+      emailComponents.body,
+    ].join("\r\n");
+
+    const encoded = Buffer.from(rfc2822, "utf8").toString("base64");
+    const base64url = encoded.replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, "");
     
-//     return {
-//       id: res.data.id,
-//       message: {
-//         id: res.data.message.id,
-//         threadId: res.data.message.threadId || undefined
-//       }
-//     };
-//   } catch (err) {
-//     console.error("Error creating draft:", err);
-//     throw new Error("Failed to create draft email");
-//   }
-// }
+    const draftBody: DraftBody = {
+      message: {
+        raw: base64url
+      }
+    };
+
+    // Create the draft
+    const res = await gmail.users.drafts.create({
+      userId: "me",
+      requestBody: draftBody
+    });
+    
+    if (!res.data.id || !res.data.message?.id) {
+      throw new Error('Invalid response from Gmail API: missing required fields');
+    }
+    
+    return {
+      id: res.data.id,
+      message: {
+        id: res.data.message.id,
+        threadId: res.data.message.threadId || undefined,
+        mail: {
+          id: res.data.message.id,
+          subject: emailComponents.subject,
+          from: "me",
+          to: emailComponents.to,
+          snippet: emailComponents.body
+        }
+      }
+    };
+  } catch (err) {
+    console.error("Error creating draft:", err);
+    throw new Error("Failed to create draft email");
+  }
+}
 
 /**
  * Sends an email message
@@ -325,36 +350,69 @@ export async function getDraftEmails(maxResults = 10): Promise<DraftEmail[]> {
  * @returns Sent message information
  */
 
-export async function sendMessage(options: { userId?: string; to: string; subject: string; snippet: string; }): Promise<SendMessageOutput> {
+export async function sendMessage(prompt: string): Promise<SendMessageOutput> {
   try {
-    const { userId = "me", to, subject, snippet } = options;
+    // Extract email components from the prompt using Gemini
+    const emailPrompt = `You are a professional email writing assistant.
+Based on the following prompt, extract and generate email components.
+Return ONLY a valid JSON object in this format:
+{
+  "to": "email@address.com",
+  "subject": "Clear subject line",
+  "body": "Professional email body"
+}
+
+User's prompt:
+${prompt}
+`;
+
+    const result = await model.generateContent(emailPrompt);
+    const response = await result.response;
+    const content = response.text().trim();
+
+    // Parse Gemini response
+    const emailComponents = JSON.parse(content.replace(/```json|```/g, '').trim());
+    
+    if (!emailComponents.to || !emailComponents.subject || !emailComponents.body) {
+      throw new Error('Invalid email components generated from prompt');
+    }
+
     const oAuth2Client = getOAuth2Client();
     const gmail = google.gmail({ version: "v1", auth: oAuth2Client });
+
+    // Create RFC2822 formatted email
     const rfc2822 = [
-      `To: ${to}`,
-      `Subject: ${subject}`,
+      `To: ${emailComponents.to}`,
+      `Subject: ${emailComponents.subject}`,
       "Content-Type: text/plain; charset=UTF-8",
       "",
-      snippet,
+      emailComponents.body,
     ].join("\r\n");
+
     const encoded = Buffer.from(rfc2822, "utf8").toString("base64");
     const base64url = encoded.replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, "");
     const messageBody: MessageBody = { raw: base64url };
+
+    // Send the email
     const res = await gmail.users.messages.send({
-      userId,
+      userId: "me",
       requestBody: messageBody
     });
+    console.log("sended-mail",rfc2822)
     if (!res.data.id) {
       throw new Error('Invalid response from Gmail API: missing message ID');
     }
+
     return {
       id: res.data.id,
       threadId: res.data.threadId || undefined,
-      labelIds: res.data.labelIds || undefined
+      labelIds: res.data.labelIds || undefined,
+      status: "mail sent successfully",
+      mail:rfc2822
     };
   } catch (err) {
     console.error("Error sending message:", err);
-    throw new Error("Failed to send email message");
+    throw new Error(err instanceof Error ? err.message : "Failed to send email message");
   }
 }
 
@@ -364,105 +422,117 @@ export async function sendMessage(options: { userId?: string; to: string; subjec
  * @returns The updated draft email
  */
 
-export async function updateDraftEmail(options: {
-  userId: string;
-  id: string;
-  to: string;
-  subject: string;
-  snippet: string;
-}): Promise<z.infer<typeof UpdateDraftOutputSchema>> {
-  const { userId, id, to, subject, snippet } = options;
-  const oAuth2Client = getOAuth2Client();
-  const gmail = google.gmail({ version: "v1", auth: oAuth2Client });
-
-  // 1️⃣ Fetch current draft content
-  const fullRes = await gmail.users.drafts.get({ userId, id });
-  const draftData = fullRes.data as GmailDraft;
-  const currentSnippet = draftData.message?.snippet || "";
-
-  // 2️⃣ Enhanced prompt for Gemini
-  const prompt = `
-You are a professional email writing assistant. 
-Your goal is to rewrite the following email draft to make it sound:
-- Polished and professional
-- Concise but friendly
-- Grammatically correct
-- Natural for human conversation
-Keep the same intent, tone, and important details.
-Return only the improved email body, without any code blocks or commentary.
-
-Here is the draft to improve:
----
-${snippet || currentSnippet}
----
-`;
-
-  const result = await model.generateContent(prompt);
-  const response = await result.response;
-  const cleanedContent = response.text().replace(/```[a-z]*|```/g, "").trim();
-
-  console.log("Cleaned email body:", cleanedContent);
-
-  // 3️⃣ Create new RFC2822 message
-  const rfc2822 = [
-    `To: ${to}`,
-    `Subject: ${subject}`,
-    "Content-Type: text/plain; charset=UTF-8",
-    "",
-    cleanedContent,
-  ].join("\r\n");
-
-  const encoded = Buffer.from(rfc2822, "utf8").toString("base64");
-  const base64url = encoded.replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, "");
-
-  // 4️⃣ Instead of updating the same draft, create a *new draft*
-  // (this ensures a new ID is generated and avoids Gmail caching old drafts)
-  const newDraftRes = await gmail.users.drafts.create({
-    userId,
-    requestBody: {
-      message: {
-        raw: base64url,
-      },
-    },
-  });
-
-  // 5️⃣ Delete the old draft (optional, if you want to keep things clean)
+export async function updateDraftEmail(prompt: string, draftId: string): Promise<z.infer<typeof UpdateDraftOutputSchema>> {
   try {
-    await gmail.users.drafts.delete({ userId, id });
+    const oAuth2Client = getOAuth2Client();
+    const gmail = google.gmail({ version: "v1", auth: oAuth2Client });
+
+    // 1️⃣ Fetch current draft content
+    const fullRes = await gmail.users.drafts.get({ userId: "me", id: draftId });
+    const draftData = fullRes.data as GmailDraft;
+
+    // Extract headers and body robustly
+    const draftHeaders = draftData.message?.payload?.headers || [];
+    const currentTo = draftHeaders.find(h => h.name === "To")?.value || "";
+    const currentSubject = draftHeaders.find(h => h.name === "Subject")?.value || "";
+
+    // Try to decode the actual saved body if available, fall back to snippet
+    let currentBody = draftData.message?.snippet || "";
+    const payload = draftData.message?.payload;
+    try {
+      if (payload?.body?.data) {
+        const decoded = Buffer.from(payload.body.data, 'base64').toString('utf8');
+        if (decoded.trim()) currentBody = decoded;
+      } else if (payload?.parts && Array.isArray(payload.parts)) {
+        const plain = payload.parts.find(p => p.mimeType === 'text/plain' && p.body?.data);
+        if (plain?.body?.data) {
+          const decoded = Buffer.from(plain.body.data, 'base64').toString('utf8');
+          if (decoded.trim()) currentBody = decoded;
+        }
+      }
+    } catch (err) {
+      // decoding failed - keep snippet
+    }
+
+    // 2️⃣ Build enhancement prompt for Gemini
+    const enhancementPrompt = `You are a professional email writing assistant with expertise in business communication.\n` +
+      `Your task is to enhance the following email while keeping its intent intact.\n\n` +
+      `Current Email:\nTo: ${currentTo}\nSubject: ${currentSubject}\nContent:\n${currentBody}\n\n` +
+      `User's enhancement instructions: ${prompt}\n\n` +
+      `Return ONLY a JSON object with this shape: {"subject": "Enhanced subject line", "body": "Enhanced email body"}`;
+
+    // 3️⃣ Call Gemini to get enhanced content
+    const result = await model.generateContent(enhancementPrompt);
+    const response = await result.response;
+    const rawText = response.text().trim();
+
+    // Try to parse structured JSON from the model; fallback to using full text as body
+    let enhancedSubject = currentSubject;
+    let enhancedBody = currentBody;
+    try {
+      const cleaned = rawText.replace(/```json|```/g, '').trim();
+      const parsed = JSON.parse(cleaned);
+      if (parsed.subject) enhancedSubject = String(parsed.subject);
+      if (parsed.body) enhancedBody = String(parsed.body);
+    } catch (err) {
+      // If parsing fails, treat the whole model output as the new body and keep subject
+      enhancedBody = rawText;
+    }
+
+    // 4️⃣ Create RFC2822 message with enhanced content
+    const rfc2822 = [
+      `To: ${currentTo}`,
+      `Subject: ${enhancedSubject}`,
+      "Content-Type: text/plain; charset=UTF-8",
+      "",
+      enhancedBody,
+    ].join("\r\n");
+
+    const encoded = Buffer.from(rfc2822, "utf8").toString("base64");
+    const base64url = encoded.replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, "");
+
+    // 5️⃣ Create a new draft with the enhanced content
+    const newDraftRes = await gmail.users.drafts.create({
+      userId: "me",
+      requestBody: { message: { raw: base64url } },
+    });
+
+    // 6️⃣ Delete the old draft (best-effort)
+    try {
+      await gmail.users.drafts.delete({ userId: "me", id: draftId });
+    } catch (err) {
+      console.warn('Failed to delete old draft:', err);
+    }
+
+    // 7️⃣ Return the updated draft info matching UpdateDraftOutputSchema
+    const newDraft = newDraftRes.data as GmailDraft;
+    const newId = newDraft.id || '';
+
+    return {
+      userId: 'me',
+      id: newId,
+      to: currentTo,
+      subject: enhancedSubject,
+      snippet: enhancedBody.substring(0, 200),
+    };
   } catch (err) {
-    console.warn("Failed to delete old draft (possibly already gone):", err);
-  }
-
-  // 6️⃣ Fetch full details of the new draft
-  const newDraft = newDraftRes.data as GmailDraft;
-  const message = newDraft.message;
-  const headers = message?.payload?.headers || [];
-  const subjectHeader = headers.find(h => h.name === "Subject")?.value || subject;
-  const fromHeader = headers.find(h => h.name === "From")?.value || "me" ||"Unknown";
-  const toHeader = headers.find(h => h.name === "To")?.value || to;
-  const Newsnippet = message?.snippet || cleanedContent;
-
-  return {
-    userId,
-    id: newDraft.id!,
-    subject: subjectHeader,
-    to: toHeader,
-    snippet:Newsnippet,
-  };
-}
-
-export async function deleteDraftEmail(options: { userId?: string; id: string }): Promise<{ success: boolean; id: string; message?: string }> {
-  const { userId = "me", id } = options;
-  const oAuth2Client = getOAuth2Client();
-  const gmail = google.gmail({ version: "v1", auth: oAuth2Client });
-  try {
-    await gmail.users.drafts.delete({ userId, id });
-    return { success: true, id, message: "Draft deleted successfully." };
-  } catch (err: any) {
-    console.error("Failed to delete draft:", err);
-    return { success: false, id, message: err?.message || "Failed to delete draft." };
+    console.error('Error updating draft:', err);
+    throw new Error(err instanceof Error ? err.message : 'Failed to update draft');
   }
 }
+
+// export async function deleteDraftEmail(options: { userId?: string; id: string }): Promise<{ success: boolean; id: string; message?: string }> {
+//   const { userId = "me", id } = options;
+//   const oAuth2Client = getOAuth2Client();
+//   const gmail = google.gmail({ version: "v1", auth: oAuth2Client });
+//   try {
+//     await gmail.users.drafts.delete({ userId, id });
+//     return { success: true, id, message: "Draft deleted successfully." };
+//   } catch (err: any) {
+//     console.error("Failed to delete draft:", err);
+//     return { success: false, id, message: err?.message || "Failed to delete draft." };
+//   }
+// }
 
 export async function unsubscribeFromSender(senderEmail: string): Promise<UnsubscribeOutput> {
   const oAuth2Client = getOAuth2Client();
