@@ -56,7 +56,7 @@ export const SendMessageInputSchema =  z.object({
 });
 
 // Output Schemas
-export const DraftListOutputSchema = z.array(DraftEmailSchema);
+export const DraftListOutputSchema = z.object({draftMails:z.array(DraftEmailSchema)});
 export const CreateDraftOutputSchema = z.object({
   id: z.string(),
   message: z.object({

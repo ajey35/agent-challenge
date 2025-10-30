@@ -1,11 +1,10 @@
 "use client"
 
-import { useCopilotAction } from "@copilotkit/react-core"
-import { type CopilotKitCSSProperties, CopilotSidebar } from "@copilotkit/react-ui"
 import { useState } from "react"
 import { type Email } from "@/mastra/agents/inbox-agent"
 import InboxContainer from "./inbox-container"
 import DraftsContainer from "./drafts-container"
+import ChatInterface from "./chat-interface"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Mail, FileText, LogOut, Settings, Bell, Search } from "lucide-react"
 import { Button } from "@/components/ui/button"
@@ -17,31 +16,15 @@ interface DashboardProps {
 }
 
 export default function Dashboard({ onLogout }: DashboardProps) {
-  const [themeColor, setThemeColor] = useState("#6366f1")
   const [activeTab, setActiveTab] = useState("inbox")
   const [selectedItem, setSelectedItem] = useState<Email | null>(null)
 
-  useCopilotAction({
-    name: "setThemeColor",
-    parameters: [
-      {
-        name: "themeColor",
-        description: "The theme color to set",
-        required: true,
-      },
-    ],
-    handler({ themeColor }) {
-      setThemeColor(themeColor)
-    },
-  })
+  
 
   
 
   return (
-    <div
-      style={{ "--copilot-kit-primary-color": themeColor } as CopilotKitCSSProperties}
-      className="h-screen w-screen flex bg-background"
-    >
+    <div className="h-screen w-screen flex bg-background">
       {/* Main Content */}
       <div className="flex-1 flex flex-col overflow-hidden">
         {/* Header */}
@@ -115,11 +98,11 @@ export default function Dashboard({ onLogout }: DashboardProps) {
             </TabsList>
 
             <TabsContent value="inbox" className="flex-1 overflow-auto">
-              <InboxContainer  themeColor={themeColor}  onEmailSelect={setSelectedItem} />
+              <InboxContainer   onEmailSelect={setSelectedItem} />
             </TabsContent>
 
             <TabsContent value="drafts" className="flex-1 overflow-auto">
-              <DraftsContainer  themeColor={themeColor}  onDraftSelect={setSelectedItem} />
+              <DraftsContainer   onDraftSelect={setSelectedItem} />
             </TabsContent>
 
             {selectedItem && (
@@ -131,17 +114,6 @@ export default function Dashboard({ onLogout }: DashboardProps) {
           </Tabs>
         </div>
       </div>
-
-      {/* CopilotKit Sidebar */}
-      <CopilotSidebar
-        clickOutsideToClose={false}
-        defaultOpen={true}
-        labels={{
-          title: "Gmail Assistant",
-          initial:
-            'Hi! I\'m your Gmail assistant. I can help you with:\n\n- Email Management: Check unread emails, sort by priority\n- Draft Management: View, create, and send drafts\n- Compose: Create and send new emails\n- Search: Find emails by subject or sender\n\nTry saying:\n- "Show me my important emails"\n- "Create a new draft"\n- "Send an email to..."\n- "Search for emails from..."',
-        }}
-      />
     </div>
   )
 }

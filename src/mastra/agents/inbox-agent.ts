@@ -13,13 +13,13 @@ export const EmailSchema = z.object({
 export type Email = z.infer<typeof EmailSchema>
 
 export const InboxStateSchema = z.object({
-  emails: z.array(EmailSchema).default([]),
+ UnReadEmails: z.array(EmailSchema).default([]),
 })
 
 export type InboxState = z.infer<typeof InboxStateSchema>
 
 export const initialInboxState: InboxState = {
-  emails: [
+  UnReadEmails: [
     {
       id: "email-1",
       subject: "Meeting Tomorrow at 2 PM",

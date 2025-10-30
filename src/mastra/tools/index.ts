@@ -37,8 +37,8 @@ export const getDraftsTool = createTool({
   outputSchema: DraftListOutputSchema,
   execute: async () => {
     console.log("Executing: get all drafts");
-    const drafts = await getDraftEmails(20);
-    return drafts;
+    const draftMails = await getDraftEmails(20);
+    return {draftMails};
   },
 });
 
@@ -71,11 +71,13 @@ export const createDraftTool = createTool({
   description:
     "Compose a new Gmail draft. Use this tool when the user says 'draft an email', 'start writing', or 'create a message but don’t send yet'. Accepts a text input with the recipient, subject, and message body. Returns the created draft details.",
   inputSchema: CreateDraftInputSchema,
-  outputSchema: CreateDraftOutputSchema,
+  outputSchema:DraftListOutputSchema,
   execute: async ({ context }) => {
     const draft = await createDraft(context.prompt);
-    return draft;
-  },
+    console.log("Created draft:", draft);
+    const draftMails = await getDraftEmails(20);
+    return { draftMails}
+  }
 });
 
 export const sendMailTool = createTool({

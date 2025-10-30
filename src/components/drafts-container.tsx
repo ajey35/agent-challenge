@@ -1,19 +1,19 @@
 "use client"
 
-import React from "react"
+import React, { useState, useEffect } from "react"
 import { Send, Edit2, Trash2, Plus, X } from "lucide-react"
 import { Button } from "@/components/ui/button"
-import { useState } from "react"
-import { useCoAgent, useCopilotAction } from "@copilotkit/react-core"
 import { type Email } from "@/mastra/agents/inbox-agent"
-import { type DraftsState, initialDraftsState } from "@/mastra/agents/drafts-agent"
+import { useChat } from "@/contexts/chat-context"
 
 interface DraftsContainerProps {
   onDraftSelect: (draft: Email) => void
-  themeColor:string
 }
 
-export default function DraftsContainer({ onDraftSelect, themeColor }: DraftsContainerProps) {
+export default function DraftsContainer({ onDraftSelect }: DraftsContainerProps) {
+  // subscribe to chat context toolResults so drafts update when agent returns them
+  const chat = useChat()
+
   const [hoveredId, setHoveredId] = useState<string | null>(null)
   const [showNewDraftModal, setShowNewDraftModal] = useState(false)
   const [editingDraft, setEditingDraft] = useState<Email | null>(null)
@@ -23,31 +23,19 @@ export default function DraftsContainer({ onDraftSelect, themeColor }: DraftsCon
     snippet: "",
   })
 
-  const { state, setState } = useCoAgent<DraftsState>({
-    name: "personalagent",
-    initialState: initialDraftsState,
-  })
-  useCopilotAction({
-    name: "getDrafts",
-    description: "Get and display draft emails",
-    available: "frontend",
-    render: ({ args }) => {
-      return (
-        <div style={{ backgroundColor: themeColor }} className="rounded-2xl max-w-md w-full text-white p-4">
-          <p className="font-semibold">✓ Drafts Updated</p>
-          <details className="mt-2">
-            <summary className="cursor-pointer text-white text-sm">View details</summary>
-            <pre
-              style={{ whiteSpace: "pre-wrap", wordBreak: "break-word" }}
-              className="overflow-x-auto text-xs bg-white/20 p-3 rounded-lg mt-2"
-            >
-              {JSON.stringify(args, null, 2)}
-            </pre>
-          </details>
-        </div>
-      )
-    },
-  })
+  // drafts are sourced from ChatInterface context
+  const drafts = chat.drafts ?? []
+  const setDrafts = chat.setDrafts ?? (() => {})
+  const [loading, setLoading] = useState(false)
+
+  // if toolResults arrive, update drafts in context
+  useEffect(() => {
+    const toolResults = chat.lastToolResults
+    console.log("toolResults",toolResults);
+    if (toolResults?.draftMails) {
+      setDrafts(toolResults.draftMails)
+    }
+  }, [chat.lastToolResults,setDrafts])
 
   const handleCreateDraft = (e: React.FormEvent) => {
     e.preventDefault()
@@ -61,18 +49,12 @@ export default function DraftsContainer({ onDraftSelect, themeColor }: DraftsCon
       }
       if (editingDraft) {
         // Update existing draft
-        setState({
-          ...state,
-          draftMails: (state?.draftMails || []).map((d) => 
-            d.id === editingDraft.id ? { ...draft, id: d.id } : d
-          ),
-        })
+        setDrafts(drafts.map((d: Email) => 
+          d.id === editingDraft.id ? { ...draft, id: d.id } : d
+        ))
       } else {
         // Create new draft
-        setState({
-          ...state,
-          draftMails: [...(state?.draftMails || []), draft],
-        })
+        setDrafts([...drafts, draft])
       }
       
       setNewDraft({ subject: "", to: "", snippet: "" })
@@ -93,10 +75,7 @@ export default function DraftsContainer({ onDraftSelect, themeColor }: DraftsCon
 
   const handleDeleteDraft = (id: string, e?: React.MouseEvent) => {
     e?.stopPropagation()
-    setState({
-      ...state,
-      draftMails: (state?.draftMails || []).filter((d) => d.id !== id),
-    })
+    setDrafts(drafts.filter((d: Email) => d.id !== id))
   }
 
   const handleSendDraft = (draft: Email, e?: React.MouseEvent) => {
@@ -104,9 +83,6 @@ export default function DraftsContainer({ onDraftSelect, themeColor }: DraftsCon
     console.log("[v0] Draft sent:", draft)
     handleDeleteDraft(draft.id)
   }
-
-  const drafts = state?.draftMails || []
-
   return (
     <div className="h-full flex flex-col bg-background">
       {/* Toolbar */}

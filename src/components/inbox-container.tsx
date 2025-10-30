@@ -1,56 +1,48 @@
 "use client"
 
-import { useCoAgent, useCopilotAction } from "@copilotkit/react-core"
-import { useState } from "react"
-import { type Email, type InboxState, initialInboxState } from "@/mastra/agents/inbox-agent"
-import { Search, Archive, Trash2 } from "lucide-react"
+import React, { useState, useEffect } from "react"
+import { type Email } from "@/mastra/agents/inbox-agent"
+import { Search, Archive, Trash2, X } from "lucide-react"
 import { Button } from "./ui/button"
-import { Input } from "./ui/input"
 import EmailViewerModal from "./email-viewer-modal"
+import { useChat } from "@/contexts/chat-context"
+import { getUnreadEmails } from "@/mastra/functions/gmail-util-funcs"
+import { email } from "zod/v4"
 
 interface InboxContainerProps {
   onEmailSelect: (email: Email) => void
-  themeColor: string
 }
 
-export default function InboxContainer({ onEmailSelect, themeColor }: InboxContainerProps) {
+export default function InboxContainer({ onEmailSelect, }: InboxContainerProps) {
   const [searchQuery, setSearchQuery] = useState("")
-  const { state, setState } = useCoAgent<InboxState>({
-    name: "personalagent",
-    initialState: initialInboxState,
-  })
-
-  // local UI state
+  const [loading, setLoading] = useState(false)
   const [selectedEmails, setSelectedEmails] = useState<Set<string>>(new Set())
   const [starredEmails, setStarredEmails] = useState<Set<string>>(new Set())
   const [selectedEmail, setSelectedEmail] = useState<Email | null>(null)
-
-  const handleDeleteEmail = (id: string) => {
-    setState({
-      ...state,
-      emails: (state?.emails || []).filter((e) => e.id !== id),
-    })
-    // remove from local sets
-    setSelectedEmails((prev) => {
-      const next = new Set(prev)
-      next.delete(id)
-      return next
-    })
-    setStarredEmails((prev) => {
-      const next = new Set(prev)
-      next.delete(id)
-      return next
-    })
-  }
-
-  const emails = state?.emails || []
-
+  const [hoveredId, setHoveredId] = useState<string | null>(null)
+  
+  const chat = useChat()
+  const emails = chat.emails ?? []
+  const setEmails = chat.setEmails ?? (() => {})
+  // Search and filter
   const filteredEmails = emails.filter(
-    (email) =>
+    (email: Email) =>
       email.subject.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      email.from.toLowerCase().includes(searchQuery.toLowerCase()),
+      email.from.toLowerCase().includes(searchQuery.toLowerCase())
   )
+  // if toolResults arrive, update drafts in context
+  useEffect(() => {
+    const toolResults = chat.lastToolResults
+    console.log("toolResults",toolResults);
+    if (toolResults?.UnReadEmails) {
+      setEmails(toolResults.UnReadEmails)
+    }
+    else if(toolResults?.ImportantEmails){
+      setEmails(toolResults.ImportantEmails)
+    }
+  }, [chat.lastToolResults,emails])
 
+  // Selection logic
   const toggleSelectAll = () => {
     if (selectedEmails.size === filteredEmails.length && filteredEmails.length > 0) {
       setSelectedEmails(new Set())
@@ -73,36 +65,26 @@ export default function InboxContainer({ onEmailSelect, themeColor }: InboxConta
     setStarredEmails(newStarred)
   }
 
-  const handleBulkDelete = () => {
-    if (selectedEmails.size === 0) return
-    setState({
-      ...state,
-      emails: emails.filter((e) => !selectedEmails.has(e.id)),
+  const handleDeleteEmail = (id: string, e?: React.MouseEvent) => {
+    e?.stopPropagation?.()
+    setEmails(emails.filter((email: Email) => email.id !== id))
+    setSelectedEmails((prev) => {
+      const next = new Set(prev)
+      next.delete(id)
+      return next
     })
-    setSelectedEmails(new Set())
+    setStarredEmails((prev) => {
+      const next = new Set(prev)
+      next.delete(id)
+      return next
+    })
   }
 
-  useCopilotAction({
-    name: "getUnreadMails",
-    description: "Get and display or render Unread emails",
-    available: "frontend",
-    render: ({ args }) => {
-      return (
-        <div style={{ backgroundColor: themeColor }} className="rounded-2xl max-w-md w-full text-white p-4">
-          <p className="font-semibold">✓ Inbox Updated</p>
-          <details className="mt-2">
-            <summary className="cursor-pointer text-white text-sm">View details</summary>
-            <pre
-              style={{ whiteSpace: "pre-wrap", wordBreak: "break-word" }}
-              className="overflow-x-auto text-xs bg-white/20 p-3 rounded-lg mt-2"
-            >
-              {JSON.stringify(args, null, 2)}
-            </pre>
-          </details>
-        </div>
-      )
-    },
-  })
+  const handleBulkDelete = () => {
+    if (selectedEmails.size === 0) return
+    setEmails(emails.filter((email: Email) => !selectedEmails.has(email.id)))
+    setSelectedEmails(new Set())
+  }
 
   return (
     <div className="h-full flex flex-col bg-background">
@@ -152,14 +134,16 @@ export default function InboxContainer({ onEmailSelect, themeColor }: InboxConta
           </div>
         ) : (
           <div className="divide-y divide-border">
-            {filteredEmails.map((email, index) => (
+            {filteredEmails.map((email: Email, index: number) => (
               <div
                 key={email.id}
+                onMouseEnter={() => setHoveredId(email.id)}
+                onMouseLeave={() => setHoveredId(null)}
                 onClick={() => {
                   setSelectedEmail(email)
                   onEmailSelect?.(email)
                 }}
-                className="px-6 py-4 hover:bg-muted/50 transition-all duration-200 cursor-pointer group border-l-4 border-l-transparent hover:border-l-primary animate-fade-in-up"
+                className="px-6 py-4 hover:bg-muted/50 transition-all duration-200 group border-l-4 border-l-transparent hover:border-l-primary animate-fade-in-up cursor-pointer"
                 style={{ animationDelay: `${index * 0.05}s` }}
               >
                 <div className="flex items-start gap-4">
@@ -187,6 +171,20 @@ export default function InboxContainer({ onEmailSelect, themeColor }: InboxConta
                     <p className="font-medium text-foreground truncate">{email.subject}</p>
                     <p className="text-sm text-muted-foreground truncate">{email.snippet}</p>
                   </div>
+                  <div
+                    className={`flex items-center gap-2 transition-all duration-200 ${
+                      hoveredId === email.id ? "opacity-100" : "opacity-0"
+                    }`}
+                  >
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      className="hover:bg-destructive/10 hover:text-destructive transition-all hover:scale-110"
+                      onClick={(e) => handleDeleteEmail(email.id, e)}
+                    >
+                      <Trash2 className="w-4 h-4" />
+                    </Button>
+                  </div>
                 </div>
               </div>
             ))}
@@ -194,6 +192,7 @@ export default function InboxContainer({ onEmailSelect, themeColor }: InboxConta
         )}
       </div>
 
+      {/* Email Viewer Modal */}
       <EmailViewerModal
         email={selectedEmail}
         onClose={() => setSelectedEmail(null)}

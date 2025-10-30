@@ -39,7 +39,7 @@ const model = gemini("gemini-2.5-flash");
 
 
 export const personalMailAgent = new Agent({
-  name: "Personal Mail Agent",
+  name: "personalMailAgent",
   tools: {
     getUnreadEmailTool,
     ImportantEmailsTool,

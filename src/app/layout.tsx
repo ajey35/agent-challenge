@@ -2,11 +2,10 @@ import type React from "react"
 import type { Metadata } from "next"
 import { Geist, Geist_Mono } from "next/font/google"
 import { Analytics } from "@vercel/analytics/next"
-import { CopilotKit } from "@copilotkit/react-core"
 import "./globals.css"
-import "@copilotkit/react-ui/styles.css"
 import { ThemeProvider } from "@/components/theme-provider"
 import Providers from "@/components/provider"
+import ChatInterface from "@/components/chat-interface"
 
 const geist = Geist({ subsets: ["latin"] })
 const geistMono = Geist_Mono({ subsets: ["latin"] })
@@ -26,9 +25,13 @@ export default function RootLayout({
     <html lang="en" suppressHydrationWarning>
       <body className={`${geist.className} antialiased`}>
         <ThemeProvider attribute="class" defaultTheme="system" enableSystem>
-          <CopilotKit runtimeUrl="/api/copilotkit" agent="personalagent">
-             {children}
-          </CopilotKit>
+          <ChatInterface>
+            <div className="min-h-screen flex flex-col">
+              <div className="flex-1">
+                {children}
+              </div>
+            </div>
+          </ChatInterface>
         </ThemeProvider>
         <Analytics />
       </body>
