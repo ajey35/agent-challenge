@@ -1,7 +1,7 @@
 "use client"
 
 import React, { useState, useRef, useEffect } from "react"
-import { Send, User, Bot, X, Minus } from "lucide-react"
+import { Send, User, Bot, X, Minimize2 } from "lucide-react"
 import { useTheme } from "next-themes"
 import { Button } from "@/components/ui/button"
 import { Textarea } from "@/components/ui/textarea"
@@ -162,131 +162,99 @@ export default function ChatInterface({ children }: PropsWithChildren<object>) {
   return (
     <ChatContext.Provider value={ctxValue}>
       {children}
-      <div className="fixed bottom-4 right-4 z-50">
+      <div className="fixed z-50">
         {!isOpen ? (
           <button
-            aria-label="Open chat"
             onClick={() => setIsOpen(true)}
-            className="h-12 w-12 rounded-full bg-primary/90 text-white shadow-lg flex items-center justify-center"
+            className="fixed bottom-6 right-6 w-14 h-14 rounded-full bg-blue-600 hover:bg-blue-700 text-white shadow-lg hover:shadow-xl transition-all duration-200 flex items-center justify-center hover:scale-110 z-50 active:scale-95"
+            title="Open AI Assistant"
           >
             <ChatIcon />
           </button>
         ) : (
-          <Card className={`${cardBg} shadow-2xl rounded-2xl w-[420px] h-[620px] flex flex-col overflow-hidden`}>
+          <div className="fixed bottom-0 right-0 w-96 h-screen max-h-[85%] bg-background border-l border-border shadow-2xl flex flex-col z-50 rounded-l-2xl overflow-hidden">
             {/* Header */}
-            <div className={`px-4 py-3 border-b ${isDark ? 'border-slate-700' : 'border-slate-200'} flex items-center justify-between gap-3`}>
+            <div className="border-b border-border bg-background px-6 py-4 flex items-center justify-between">
               <div className="flex items-center gap-3">
-                <div className="w-8 h-8 rounded-md bg-gradient-to-br from-primary to-accent flex items-center justify-center text-white">📨</div>
+                <div className="w-8 h-8 rounded-full bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center text-white text-sm font-bold">AI</div>
                 <div>
-                  <div className="text-sm font-semibold">Personal Mail Agent</div>
-                  <div className="text-[11px] opacity-60">Chat with your mail agent</div>
+                  <h3 className="font-semibold text-foreground text-sm">AI Assistant</h3>
+                  <p className="text-xs text-muted-foreground">Always here to help</p>
                 </div>
               </div>
               <div className="flex items-center gap-2">
                 <button
-                  aria-label="Minimize chat"
                   onClick={() => setIsOpen(false)}
-                  className="p-2 rounded-md hover:bg-muted/10"
+                  className="p-2 hover:bg-muted rounded-lg transition-colors"
+                  title="Minimize"
                 >
-                  <Minus className="w-4 h-4" />
+                  <Minimize2 size={18} className="text-muted-foreground" />
                 </button>
                 <button
-                  aria-label="Close chat"
                   onClick={() => {
-                    // clear messages and close
                     setChatState({ messages: [], isLoading: false })
                     setIsOpen(false)
                   }}
-                  className="p-2 rounded-md hover:bg-muted/10"
+                  className="p-2 hover:bg-muted rounded-lg transition-colors"
                 >
                   <X className="w-4 h-4" />
                 </button>
               </div>
             </div>
 
-            {/* Chat Messages */}
-            <ScrollArea ref={scrollRef} className="flex-1 px-4 py-3 space-y-4 overflow-y-auto">
-              {chatState.messages.map((msg) => (
-                <div
-                  key={msg.id}
-                  className={`flex items-end gap-3 ${msg.role === "user" ? "justify-end" : "justify-start"}`}
-                >
-                  {/* Assistant (left) */}
-                  {msg.role === "assistant" && (
-                    <div className="flex items-end">
-                      <Avatar className="w-9 h-9 mr-2">
-                        <AvatarFallback>
-                          <Bot className={`w-4 h-4 ${isDark ? 'text-green-300' : 'text-green-600'}`} />
-                        </AvatarFallback>
-                      </Avatar>
-                    </div>
-                  )}
-
-                  <div className={`p-3 rounded-2xl max-w-[78%] leading-relaxed shadow ${msg.role === 'user' ? userBubble : assistantBubble} ${msg.role === 'user' ? 'rounded-br-md' : 'rounded-bl-md'}`}>
-                    <p className="text-sm font-medium break-words whitespace-pre-wrap">{msg.content}</p>
-                    <p className={`text-[11px] mt-1 ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>
-                      {new Date(msg.timestamp).toLocaleTimeString()}
+            {/* Messages */}
+            <div className="flex-1 overflow-y-auto px-4 py-4 space-y-4" ref={scrollRef}>
+              {chatState.messages.map((message) => (
+                <div key={message.id} className={`flex ${message.role === "user" ? "justify-end" : "justify-start"}`}>
+                  <div
+                    className={`max-w-xs px-4 py-2 rounded-lg text-sm ${
+                      message.role === "user"
+                        ? "bg-blue-600 text-white rounded-br-none"
+                        : "bg-muted text-foreground rounded-bl-none"
+                    }`}
+                  >
+                    <p className="leading-relaxed whitespace-pre-wrap">{message.content}</p>
+                    <p className={`text-xs mt-1 ${message.role === "user" ? "text-blue-100" : "text-muted-foreground"}`}>
+                      {new Date(message.timestamp).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
                     </p>
                   </div>
-
-                  {/* User (right) */}
-                  {msg.role === "user" && (
-                    <div className="flex items-end">
-                      <Avatar className="w-9 h-9 ml-2">
-                        <AvatarFallback>
-                          <User className={`w-4 h-4 ${isDark ? 'text-blue-300' : 'text-blue-600'}`} />
-                        </AvatarFallback>
-                      </Avatar>
-                    </div>
-                  )}
                 </div>
               ))}
 
               {chatState.isLoading && (
-                <div className="flex items-center gap-3 justify-start">
-                  <Avatar className="w-9 h-9 mr-2">
-                    <AvatarFallback>
-                      <Bot className={`w-4 h-4 ${isDark ? 'text-green-300' : 'text-green-600'}`} />
-                    </AvatarFallback>
-                  </Avatar>
-                  <div className={`${assistantBubble} rounded-xl px-3 py-2 flex items-center space-x-2`}>
-                    <div className="w-2 h-2 bg-current rounded-full animate-bounce" />
-                    <div className="w-2 h-2 bg-current rounded-full animate-bounce" style={{ animationDelay: '0.15s' }} />
-                    <div className="w-2 h-2 bg-current rounded-full animate-bounce" style={{ animationDelay: '0.3s' }} />
+                <div className="flex justify-start">
+                  <div className="bg-muted text-foreground px-4 py-2 rounded-lg rounded-bl-none">
+                    <div className="flex gap-1">
+                      <div className="w-2 h-2 bg-muted-foreground rounded-full animate-bounce" />
+                      <div className="w-2 h-2 bg-muted-foreground rounded-full animate-bounce delay-100" />
+                      <div className="w-2 h-2 bg-muted-foreground rounded-full animate-bounce delay-200" />
+                    </div>
                   </div>
                 </div>
               )}
-            </ScrollArea>
+            </div>
 
-            {/* Input Area */}
-            <form onSubmit={handleSubmit} className={`p-4 border-t ${isDark ? 'border-slate-700 bg-slate-900/60' : 'border-slate-200 bg-white/40'}`}>
-              <div className="flex items-center gap-3">
-                <Textarea
+            {/* Input */}
+            <div className="border-t border-border bg-background px-6 py-6">
+              <div className="flex gap-2">
+                <input
+                  type="text"
                   value={input}
                   onChange={(e) => setInput(e.target.value)}
-                  placeholder="Type your message..."
-                  className={`min-h-[60px] resize-none rounded-xl ${isDark ? 'bg-white/6 text-white placeholder:text-gray-400 focus:ring-2 focus:ring-blue-500' : 'bg-white text-gray-900 placeholder:text-gray-500 focus:ring-2 focus:ring-blue-500'}`}
-                  onKeyDown={(e) => {
-                    if (e.key === "Enter" && !e.shiftKey) {
-                      e.preventDefault()
-                      handleSubmit(e)
-                    }
-                  }}
+                  onKeyPress={(e) => e.key === "Enter" && handleSubmit(e)}
+                  placeholder="Ask me anything..."
+                  className="flex-1 rounded-full bg-muted px-6 py-4 text-sm text-foreground placeholder-muted-foreground focus:outline-none focus:ring-2 focus:ring-blue-500"
                 />
-                <Button
-                  type="submit"
-                  size="icon"
+                <button
+                  onClick={(e) => { e.preventDefault(); handleSubmit(e); }}
                   disabled={!input.trim() || chatState.isLoading}
-                  className={`rounded-full h-[60px] w-[60px] ${isDark ? 'bg-blue-600 hover:bg-blue-700' : 'bg-blue-600 hover:bg-blue-700'} transition-transform duration-150 hover:scale-105`}
+                  className="h-[56px] w-[56px] flex items-center justify-center rounded-full bg-blue-600 hover:bg-blue-700 disabled:bg-muted disabled:text-muted-foreground text-white transition-colors active:scale-95"
                 >
-                  <Send className="h-5 w-5" />
-                </Button>
+                  <Send className="h-6 w-6" />
+                </button>
               </div>
-              {chatState.error && (
-                <p className="text-sm text-red-400 mt-2">{chatState.error}</p>
-              )}
-            </form>
-          </Card>
+            </div>
+          </div>
         )}
       </div>
     </ChatContext.Provider>

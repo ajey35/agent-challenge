@@ -1,5 +1,4 @@
 "use client"
-
 import { useState } from "react"
 import LandingPage from "@/components/landing-page"
 import Dashboard from "@/components/dashboard"
