@@ -47,14 +47,15 @@ export const FetchPrioritizedEmailsOutputSchema = z.object({
 
 // Unsubscribe schemas
 export const UnsubscribeInputSchema = z.object({
-  messageId: z.string().describe('Gmail message ID to unsubscribe'),
-});
+    senderEmail: z.string()
+  })
 
 export const UnsubscribeOutputSchema = z.object({
   success: z.boolean(),
   method: z.string(),
   address: z.string().optional(),
   url: z.string().optional(),
+  messageId: z.string().optional(),
 });
 
 

@@ -185,6 +185,8 @@ function useToast() {
     ...state,
     toast,
     dismiss: (toastId?: string) => dispatch({ type: "DISMISS_TOAST", toastId }),
+    // Immediately remove a toast from state (no delay)
+    remove: (toastId?: string) => dispatch({ type: "REMOVE_TOAST", toastId }),
   }
 }
 

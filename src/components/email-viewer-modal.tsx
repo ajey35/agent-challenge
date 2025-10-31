@@ -41,6 +41,9 @@ export default function EmailViewerModal({ email, onClose, onReply, onDelete }: 
               <span className="text-sm font-medium">Back</span>
             </button>
             <div className="flex items-center gap-2">
+              <div>
+                id : {email.id}
+              </div>
               <Button
                 variant="ghost"
                 size="sm"
@@ -59,6 +62,7 @@ export default function EmailViewerModal({ email, onClose, onReply, onDelete }: 
         {/* Email Content */}
         <div className="flex-1 overflow-y-auto">
           <div className="max-w-3xl mx-auto px-6 py-8">
+            
             {/* Subject */}
             <h2 className="text-2xl font-bold text-foreground mb-6">{email.subject}</h2>
 

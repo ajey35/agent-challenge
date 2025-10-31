@@ -97,7 +97,12 @@ export const unsubscribeTool = createTool({
   inputSchema: UnsubscribeInputSchema,
   outputSchema: UnsubscribeOutputSchema,
   execute: async ({ context }) => {
-    const res = await unsubscribeFromSender(context.messageId);
+      // Prefer senderEmail when available (more human-friendly). If not provided, fall back to messageId.
+      const identifier = context.senderEmail ;
+    if (!identifier) {
+      return { success: false, method: "no-input" } as any;
+    }
+    const res = await unsubscribeFromSender(identifier as string);
     return res;
   },
 });

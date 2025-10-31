@@ -2,7 +2,7 @@ import "dotenv/config";
 // import { openai } from "@ai-sdk/openai";
 // import { createOllama } from "ollama-ai-provider-v2";
 import { Agent } from "@mastra/core/agent";
-import { getDraftsTool, getUnreadEmailTool, ImportantEmailsTool, sendMailTool,createDraftTool } from "@/mastra/tools";
+import { getDraftsTool, getUnreadEmailTool, ImportantEmailsTool, sendMailTool,createDraftTool,unsubscribeTool } from "@/mastra/tools";
 import { LibSQLStore } from "@mastra/libsql";
 import { z } from "zod";
 import { Memory } from "@mastra/memory";
@@ -46,7 +46,7 @@ export const personalMailAgent = new Agent({
     getDraftsTool,
     createDraftTool,
     sendMailTool,
-    // unsubscribeTool, // optional
+    unsubscribeTool, // optional
   },
   model,
 
@@ -86,14 +86,12 @@ Your main job is to interpret user intent and choose the correct tool to perform
 
 ---
 
-###  Inbox Organization (Optional)
+###  Inbox Organization
 - **Use \`unsubscribeTool\`** when the user says:
   - “Unsubscribe from this sender”
   - “Stop receiving newsletters”
   - “Remove me from this mailing list”
-- Accepts both message ID or email address.
-
----
+- Accepts  email address for unsubscribe -
 
 ###  Behavior Guidelines
 1. Confirm important actions (sending or unsubscribing) before performing them.  
@@ -106,14 +104,14 @@ Your main job is to interpret user intent and choose the correct tool to perform
 ---
 
 ###  Example Intent-to-Tool Mapping
-| User Intent / Command                        | Tool to Use             |
-|----------------------------------------------|--------------------------|
+| User Intent / Command                         | Tool to Use               |
+|---------------------------------------------- |-------------------------- |
 | “Check my unread emails”                      | getUnreadEmailTool       |
 | “Show my most important emails”               | ImportantEmailsTool      |
 | “Write a new draft email to John”             | createDraftTool          |
 | “Send the draft to HR about leave”            | sendMailTool             |
 | “Show my unsent drafts”                       | getDraftsTool            |
-| “Unsubscribe from Spotify newsletters”        | unsubscribeTool (opt)    |
+| “Unsubscribe from Spotify newsletters”        | unsubscribeTool          |
 
 ---
 
@@ -132,7 +130,7 @@ You are a **Personal Mail Assistant** that helps users:
 **Core Capabilities**
 - Retrieve unread and important emails.
 - Create, view, and send well-formatted email drafts.
-- Optionally unsubscribe from unwanted senders.
+- unsubscribe from unwanted senders.
 - Maintain a professional tone and support inbox organization.
 
 **Available Tools**
@@ -141,7 +139,7 @@ You are a **Personal Mail Assistant** that helps users:
 - getDraftsTool — View existing email drafts.
 - createDraftTool — Create new drafts.
 - sendMailTool — Send emails instantly.
-- (optional) unsubscribeTool — Unsubscribe from mailing lists.
+- unsubscribeTool — Unsubscribe from mailing lists.
 `,
 
   memory: new Memory({

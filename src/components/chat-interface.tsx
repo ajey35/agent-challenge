@@ -130,22 +130,29 @@ export default function ChatInterface({ children }: PropsWithChildren<object>) {
             });
 
           }
-          else if (payload.toolName === "unsubscribeTool" && result?.status === "success") {
+          else if ((payload.toolName === "unsubscribeFromSender" || (payload.toolName || "").toLowerCase().includes("unsubscribe")) && result?.success) {
             // Show modern toast notification for successful unsubscribe
+            const method = result.method || "unknown";
+            const idOrAddr = result.messageId ?? result.address ?? result.url ?? "";
+            const description = idOrAddr
+              ? `Unsubscribed (${method}) — ${idOrAddr}`
+              : `Unsubscribed (${method})`;
+
             toast({
               title: "Unsubscribed Successfully!",
-              description: `You have been unsubscribed from the mailing list. Message ID: ${result.messageId}`,
+              description,
+              center: true,
               action: (
                 <div className="mt-2">
-                  <button 
+                  <button
                     onClick={() => console.log("Undo unsubscribe")}
                     className="inline-flex items-center justify-center rounded-md bg-primary px-3 py-2 text-sm font-medium text-primary-foreground hover:bg-primary/90"
                   >
                     Undo
                   </button>
                 </div>
-              )
-            });
+              ),
+            } as any);
           }
         }
 

@@ -83,7 +83,7 @@ function heuristicPriority(email: Email): number {
 
 
 // Initialize Gemini model
-console.log("geminiapikey->",process.env.GEMINI_API_KEY);
+console.log("geminiapikey->", process.env.GEMINI_API_KEY);
 const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY!);
 const model = genAI.getGenerativeModel({ model: "gemini-2.5-flash" });
 // 🧠 LLM-powered scoring using Gemini
@@ -171,42 +171,115 @@ export async function getPrioritizedEmails(maxResults = 10): Promise<Prioritized
 }
 
 
+
 export async function getUnreadEmails(maxResults = 10, query = "is:unread") {
+
   const oAuth2Client = getOAuth2Client();
+
   const gmail = google.gmail({ version: "v1", auth: oAuth2Client });
 
+
+
   const res = await gmail.users.messages.list({
+
     userId: "me",
+
     q: query,
+
     maxResults,
+
   });
 
+
+
   const messages = res.data.messages || [];
+
   const emails = [];
 
+
+
   for (const message of messages) {
+
     const full = await gmail.users.messages.get({
+
       userId: "me",
+
       id: message.id!,
+
     });
+
+
 
     const headers = full.data.payload?.headers || [];
+
     const subject = headers.find(h => h.name === "Subject")?.value || "No subject";
+
     const from = headers.find(h => h.name === "From")?.value || "Unknown";
+
     const received = headers.find(h => h.name === "Date")?.value || new Date().toISOString();
+
     const snippet = full.data.snippet || "";
 
-    emails.push({ 
-      id: message.id!, 
-      subject, 
-      from, 
+
+
+    emails.push({
+
+      id: message.id!,
+
+      subject,
+
+      from,
+
       snippet,
-      received 
+
+      received
+
     });
+
   }
 
+
+
   return emails;
+
 }
+
+// export async function getUnreadEmails(maxResults = 10, query = "is:unread") {
+//   const oAuth2Client = getOAuth2Client();
+//   const gmail = google.gmail({ version: "v1", auth: oAuth2Client });
+
+//   const res = await gmail.users.messages.list({
+//     userId: "me",
+//     q: query,
+//     maxResults,
+//   });
+
+//   const messages = res.data.messages || [];
+//   const emails = [];
+
+//   for (const message of messages) {
+//     const full = await gmail.users.messages.get({
+//       userId: "me",
+//       id: message.id!,
+//     });
+
+//     const headers = full.data.payload?.headers || [];
+//     const subject = headers.find(h => h.name === "Subject")?.value || "No subject";
+//     const from = headers.find(h => h.name === "From")?.value || "Unknown";
+//     const received = headers.find(h => h.name === "Date")?.value || new Date().toISOString();
+//     const snippet = full.data.snippet || "";
+
+//     emails.push({ 
+//       id: message.id!, 
+//       subject, 
+//       from, 
+//       snippet,
+//       received 
+//     });
+//   }
+
+//   return emails;
+// }
 
 
 export type UnsubscribeOutput = z.infer<typeof UnsubscribeOutputSchema>;
@@ -222,9 +295,9 @@ export async function getDraftEmails(maxResults = 10): Promise<DraftEmail[]> {
     const gmail = google.gmail({ version: "v1", auth: oAuth2Client });
 
     // List drafts
-    const res = await gmail.users.drafts.list({ 
+    const res = await gmail.users.drafts.list({
       userId: "me",
-      maxResults 
+      maxResults
     });
 
     const messages = res.data.drafts || [];
@@ -236,7 +309,7 @@ export async function getDraftEmails(maxResults = 10): Promise<DraftEmail[]> {
           userId: "me",
           id: draft.id!,
         });
-        console.log("fullRes",fullRes)
+        console.log("fullRes", fullRes)
 
         const draftData = fullRes.data as GmailDraft;
         const message = draftData.message;
@@ -288,7 +361,7 @@ ${prompt}
 
     // Parse Gemini response
     const emailComponents = JSON.parse(content.replace(/```json|```/g, '').trim());
-    
+
     if (!emailComponents.to || !emailComponents.subject || !emailComponents.body) {
       throw new Error('Invalid email components generated from prompt');
     }
@@ -307,7 +380,7 @@ ${prompt}
 
     const encoded = Buffer.from(rfc2822, "utf8").toString("base64");
     const base64url = encoded.replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, "");
-    
+
     const draftBody: DraftBody = {
       message: {
         raw: base64url
@@ -319,11 +392,11 @@ ${prompt}
       userId: "me",
       requestBody: draftBody
     });
-    
+
     if (!res.data.id || !res.data.message?.id) {
       throw new Error('Invalid response from Gmail API: missing required fields');
     }
-    
+
     return {
       id: res.data.id,
       message: {
@@ -372,7 +445,7 @@ ${prompt}
 
     // Parse Gemini response
     const emailComponents = JSON.parse(content.replace(/```json|```/g, '').trim());
-    
+
     if (!emailComponents.to || !emailComponents.subject || !emailComponents.body) {
       throw new Error('Invalid email components generated from prompt');
     }
@@ -442,7 +515,7 @@ ${prompt}
     return {
       status: "mail sent successfully",
       newMailId: res.data.id,
-      sentEmails: sentEmails.sort((a, b) => 
+      sentEmails: sentEmails.sort((a, b) =>
         new Date(b.mail.timestamp).getTime() - new Date(a.mail.timestamp).getTime()
       )
     };
