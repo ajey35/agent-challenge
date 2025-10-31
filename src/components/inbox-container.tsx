@@ -5,6 +5,7 @@ import { type Email } from "@/mastra/agents/inbox-agent"
 import { Search, Archive, Trash2, Star, MoreVertical } from "lucide-react"
 import { Button } from "./ui/button"
 import { useChat } from "@/contexts/chat-context"
+import { useToast } from "@/hooks/use-toast"
 
 interface InboxContainerProps {
   onEmailSelect: (email: Email) => void
@@ -13,42 +14,40 @@ interface InboxContainerProps {
 
 export default function InboxContainer({ onEmailSelect, category }: InboxContainerProps) {
   const [searchQuery, setSearchQuery] = useState("")
-  const [loading, setLoading] = useState(false)
   const [selectedEmails, setSelectedEmails] = useState<Set<string>>(new Set())
   const [starredEmails, setStarredEmails] = useState<Set<string>>(new Set())
-  // selection handled by parent via onEmailSelect
   const [hoveredId, setHoveredId] = useState<string | null>(null)
   
   const chat = useChat()
+  const { toast } = useToast()
   const emails = chat.emails ?? []
+  const importantMails = chat.importantMails ?? []
   const setEmails = chat.setEmails ?? (() => {})
+
+  // Select which emails to display based on category
+  const currentEmails = category?.toLowerCase().includes("important") 
+    ? importantMails 
+    : emails // defaults to unread emails
+
   // Search and filter
-  const filteredEmails = emails.filter(
+  const filteredEmails = currentEmails.filter(
     (email: Email) =>
       email.subject.toLowerCase().includes(searchQuery.toLowerCase()) ||
       email.from.toLowerCase().includes(searchQuery.toLowerCase())
   )
 
-  // If a category is requested (from sidebar), filter accordingly
   let displayedEmails = filteredEmails
-  if (category) {
-    if (category === "Un-Read" || category.toLowerCase().includes("unread")) {
-      displayedEmails = filteredEmails.filter((e: any) => !!e.unread)
-    } else if (category === "Important-Mails" || category.toLowerCase().includes("important")) {
-      displayedEmails = filteredEmails.filter((e: any) => !!e.starred)
-    }
-  }
-  // if toolResults arrive, update drafts in context
+
+  // Update emails when tool results arrive
   useEffect(() => {
     const toolResults = chat.lastToolResults
-    console.log("toolResults",toolResults);
     if (toolResults?.UnReadEmails) {
       setEmails(toolResults.UnReadEmails)
     }
-    else if(toolResults?.ImportantEmails){
-      setEmails(toolResults.ImportantEmails)
+    if (toolResults?.ImportantEmails) {
+      chat.setImportantMails?.(toolResults.ImportantEmails)
     }
-  }, [chat.lastToolResults,emails])
+  }, [chat.lastToolResults, setEmails, chat.setImportantMails])
 
   // Selection logic
   const toggleSelectAll = () => {
@@ -102,7 +101,7 @@ export default function InboxContainer({ onEmailSelect, category }: InboxContain
           <Search className="w-4 h-4 text-muted-foreground" />
           <input
             type="text"
-            placeholder="Search in emails..."
+            placeholder={`Search in ${category?.toLowerCase().includes("important") ? "important" : "unread"} mails...`}
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
             className="flex-1 bg-transparent outline-none text-foreground placeholder:text-muted-foreground"
@@ -209,12 +208,20 @@ export default function InboxContainer({ onEmailSelect, category }: InboxContain
                     {email.from.charAt(0).toUpperCase()}
                   </div>
                   <div className="flex-1 min-w-0">
-                    <div className="flex items-center gap-2 mb-1">
-                      <span className="font-semibold text-foreground truncate">
-                        {email.from}
-                      </span>
-                      <span className="text-xs text-muted-foreground whitespace-nowrap">
-                        {new Date().toLocaleDateString()}
+                    <div className="flex items-center justify-between mb-1">
+                      <div className="flex items-center gap-2">
+                        <span className="font-semibold text-foreground truncate">
+                          {email.from}
+                        </span>
+                        <span className="text-xs bg-primary/10 text-primary px-2 py-0.5 rounded-full">
+                          ID: {email.id.substring(0, 8)}...
+                        </span>
+                        <span className="text-xs text-muted-foreground whitespace-nowrap">
+                          {category?.toLowerCase().includes("important") ? "Important" : "Unread"}
+                        </span>
+                      </div>
+                      <span className="text-xs text-muted-foreground">
+                        {email.timestamp ? new Date(email.timestamp).toLocaleString() : ""}
                       </span>
                     </div>
                     <div className="flex items-center gap-2">
@@ -223,6 +230,22 @@ export default function InboxContainer({ onEmailSelect, category }: InboxContain
                       </span>
                       <span className="text-xs text-muted-foreground truncate flex-1">
                         {email.snippet}
+                      </span>
+                    </div>
+                    <div className="mt-1">
+                      <span 
+                        className="text-xs text-muted-foreground hover:text-primary cursor-pointer"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          navigator.clipboard.writeText(email.id);
+                          toast({
+                            title: "ID Copied",
+                            description: "Email ID has been copied to clipboard",
+                            duration: 2000
+                          });
+                        }}
+                      >
+                        Full ID: {email.id}
                       </span>
                     </div>
                   </div>

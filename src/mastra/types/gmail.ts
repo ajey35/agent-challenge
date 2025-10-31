@@ -1,14 +1,41 @@
+import { timeStamp } from 'console';
 import { z } from 'zod';
+
+// Email Schema
+export const EmailDetailsSchema = z.object({
+  subject: z.string(),
+  from: z.string(),
+  to: z.string(),
+  body: z.string(),
+  timestamp: z.string()
+});
+
+// // Sent Message Output Schema
+// export const SendMessageOutputSchema = z.object({
+//   id: z.string(),
+//   threadId: z.string().optional(),
+//   labelIds: z.array(z.string()).optional(),
+//   status: z.string(),
+//   mail: EmailDetailsSchema
+// });
 
 // Draft Email Schema
 export const DraftEmailSchema = z.object({
   id: z.string(),
   subject: z.string(),
   from: z.string(),
-  to : z.string(),
+  to: z.string(),
   snippet: z.string(),
 });
 
+
+export const SentMail = z.object({
+  subject:z.string(),
+  from:z.string(),
+  to:z.string(),
+  snippet:z.string(),
+  timestamp:z.string().optional(),
+})
 
 
 
@@ -70,7 +97,7 @@ export const SendMessageOutputSchema = z.object({
   threadId: z.string().optional(),
   labelIds: z.array(z.string()).optional(),
   status: z.string().optional(),
-  mail: z.string().optional(),
+  mail:SentMail ,
 });
 
 // Types
@@ -80,6 +107,7 @@ export type SendMessageInput = z.infer<typeof SendMessageInputSchema>;
 export type DraftListOutput = z.infer<typeof DraftListOutputSchema>;
 export type CreateDraftOutput = z.infer<typeof CreateDraftOutputSchema>;
 export type UpdateDraftOutput = z.infer<typeof CreateDraftOutputSchema>;
+// export type SendMessageOutput = z.infer<typeof DraftEmailSchema>;
 export type SendMessageOutput = z.infer<typeof SendMessageOutputSchema>;
 export type DeleteDraftInput = z.infer<typeof DeleteDraftInputSchema>;
 export type DeleteDraftOutput = z.infer<typeof DeleteDraftOutputSchema>;

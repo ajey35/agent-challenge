@@ -6,9 +6,9 @@ import { type UnsubscribeOutputSchema } from "../types/types";
 import {
   DraftEmail,
   CreateDraftOutput,
-  SendMessageOutput,
- UpdateDraftOutputSchema
+  UpdateDraftOutputSchema,
 } from "../types/gmail";
+import { SendMessageOutput } from "../types/sent-mail";
 import {
   GmailDraft,
   DraftBody,
@@ -398,17 +398,53 @@ ${prompt}
       userId: "me",
       requestBody: messageBody
     });
-    console.log("sended-mail",rfc2822)
+
     if (!res.data.id) {
       throw new Error('Invalid response from Gmail API: missing message ID');
     }
 
+    // Fetch all sent emails
+    const sentList = await gmail.users.messages.list({
+      userId: "me",
+      q: "in:sent",
+      maxResults: 20 // Fetch last 20 sent emails
+    });
+
+    const messages = sentList.data.messages || [];
+    const sentEmails = [];
+
+    // Get details for each sent email
+    for (const message of messages) {
+      const fullMessage = await gmail.users.messages.get({
+        userId: "me",
+        id: message.id!,
+        format: "full"
+      });
+
+      const headers = fullMessage.data.payload?.headers || [];
+      const sentEmail = {
+        id: message.id!,
+        threadId: fullMessage.data.threadId || undefined,
+        labelIds: fullMessage.data.labelIds || undefined,
+        status: message.id === res.data.id ? "just sent" : "sent",
+        mail: {
+          subject: headers.find(h => h.name === "Subject")?.value || "No subject",
+          from: headers.find(h => h.name === "From")?.value || "me",
+          to: headers.find(h => h.name === "To")?.value || "No recipient",
+          snippet: fullMessage.data.snippet || "",
+          timestamp: headers.find(h => h.name === "Date")?.value || new Date().toISOString()
+        }
+      };
+      sentEmails.push(sentEmail);
+    }
+
+    // Return all sent emails, sorted by timestamp (newest first)
     return {
-      id: res.data.id,
-      threadId: res.data.threadId || undefined,
-      labelIds: res.data.labelIds || undefined,
       status: "mail sent successfully",
-      mail:rfc2822
+      newMailId: res.data.id,
+      sentEmails: sentEmails.sort((a, b) => 
+        new Date(b.mail.timestamp).getTime() - new Date(a.mail.timestamp).getTime()
+      )
     };
   } catch (err) {
     console.error("Error sending message:", err);

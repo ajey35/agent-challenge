@@ -1,8 +1,9 @@
 "use client"
 
 import React, { useState, useRef, useEffect } from "react"
-import { Send, User, Bot, X, Minimize2 } from "lucide-react"
+import { Send, User, Bot, X, Minimize2, Check } from "lucide-react"
 import { useTheme } from "next-themes"
+import { useToast } from "@/hooks/use-toast"
 import { Button } from "@/components/ui/button"
 import { Textarea } from "@/components/ui/textarea"
 import { ScrollArea } from "@/components/ui/scroll-area"
@@ -11,7 +12,8 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { type ChatMessage, type ChatState } from "@/types/chat"
 import { ChatContext } from "@/contexts/chat-context"
 import type { PropsWithChildren } from "react"
-import { Email } from "@/mastra/agents/inbox-agent"
+import { Email, SentMail } from "@/mastra/agents/inbox-agent"
+import { set } from "zod/v4"
 
 export default function ChatInterface({ children }: PropsWithChildren<object>) {
   const [chatState, setChatState] = useState<ChatState>({
@@ -25,10 +27,13 @@ export default function ChatInterface({ children }: PropsWithChildren<object>) {
   const { theme, resolvedTheme } = useTheme()
   const [mounted, setMounted] = useState(false)
   const isDark = mounted ? (theme === "dark" || resolvedTheme === "dark") : true
+  const { toast } = useToast();
 
   // State Variables for rendering results
   const [drafts, setDrafts] = useState<Email[]>([]);
   const [emails, setEmails] = useState<Email[]>([]);
+  const [importantMails, setImportantMails] = useState<Email[]>([]);
+  const [sentMails, setSentMails] = useState<Email[]>([]);
 
   useEffect(() => {
     if (scrollRef.current) {
@@ -76,8 +81,25 @@ export default function ChatInterface({ children }: PropsWithChildren<object>) {
       const result = payload && payload.result ? payload.result : null;
 
       setLastToolResults(result || null)
-      // console.log("fin-resp",payload?.result?.draftMails);
-      // console.log("data.toolResults", payload?.result);
+
+      if (payload?.toolName === "sendMailTool" && result?.sentEmails) {
+        console.log("Sent mail details:", result);
+        // Convert the sent emails to the correct format
+        const formattedEmails: Email[] = result.sentEmails.map((email: any) => ({
+          id: email.id,
+          subject: email.mail.subject,
+          from: email.mail.from,
+          to: email.mail.to,
+          snippet: email.mail.snippet,
+          timestamp: email.mail.timestamp,
+          threadId: email.threadId,
+          labelIds: email.labelIds,
+          status: email.status
+        }));
+        console.log("Formatted sent emails:", formattedEmails);
+        setSentMails(formattedEmails);
+      }
+
       if (toolResult) {
         console.log("hi heeloo", toolResult);
         if (payload) {
@@ -91,7 +113,7 @@ export default function ChatInterface({ children }: PropsWithChildren<object>) {
           }
           else if (payload.toolName === "getImportantEmailsTool" && result && result.ImportantEmails) {
             console.log("importantmails", result.ImportantEmails);
-            setEmails(result.ImportantEmails);
+            setImportantMails(result.ImportantEmails);
           }
           else if (payload.toolName === "createEmailDraft" && result && result.draftMails) {
             setDrafts((prevDrafts) => {
@@ -108,8 +130,25 @@ export default function ChatInterface({ children }: PropsWithChildren<object>) {
             });
 
           }
-
+          else if (payload.toolName === "unsubscribeTool" && result?.status === "success") {
+            // Show modern toast notification for successful unsubscribe
+            toast({
+              title: "Unsubscribed Successfully!",
+              description: `You have been unsubscribed from the mailing list. Message ID: ${result.messageId}`,
+              action: (
+                <div className="mt-2">
+                  <button 
+                    onClick={() => console.log("Undo unsubscribe")}
+                    className="inline-flex items-center justify-center rounded-md bg-primary px-3 py-2 text-sm font-medium text-primary-foreground hover:bg-primary/90"
+                  >
+                    Undo
+                  </button>
+                </div>
+              )
+            });
+          }
         }
+
       }
       const assistantMessage: ChatMessage = {
         id: (Date.now() + 1).toString(),
@@ -156,6 +195,10 @@ export default function ChatInterface({ children }: PropsWithChildren<object>) {
     setDrafts,
     emails,
     setEmails,
+    importantMails,
+    setImportantMails,
+    sentMails,
+    setSentMails,
     sendMessage,
   }
 
@@ -207,11 +250,10 @@ export default function ChatInterface({ children }: PropsWithChildren<object>) {
               {chatState.messages.map((message) => (
                 <div key={message.id} className={`flex ${message.role === "user" ? "justify-end" : "justify-start"}`}>
                   <div
-                    className={`max-w-xs px-4 py-2 rounded-lg text-sm ${
-                      message.role === "user"
+                    className={`max-w-xs px-4 py-2 rounded-lg text-sm ${message.role === "user"
                         ? "bg-blue-600 text-white rounded-br-none"
                         : "bg-muted text-foreground rounded-bl-none"
-                    }`}
+                      }`}
                   >
                     <p className="leading-relaxed whitespace-pre-wrap">{message.content}</p>
                     <p className={`text-xs mt-1 ${message.role === "user" ? "text-blue-100" : "text-muted-foreground"}`}>

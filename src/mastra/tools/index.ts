@@ -4,12 +4,10 @@ import {
   FetchPrioritizedEmailsInputSchema,
   FetchPrioritizedEmailsOutputSchema
 } from '../types/types';
+import { SendMessageInputSchema, SendMessageOutputSchema } from '../types/sent-mail';
 import {
   CreateDraftInputSchema,
-  SendMessageInputSchema,
-  
   CreateDraftOutputSchema,
-  SendMessageOutputSchema,
   DraftListOutputSchema,
   // UpdateAndSendDraftOutputSchema,
   UpdateDraftInputSchema,
@@ -87,8 +85,8 @@ export const sendMailTool = createTool({
   inputSchema: SendMessageInputSchema,
   outputSchema: SendMessageOutputSchema,
   execute: async ({ context }) => {
-    const message = await sendMessage(context.prompt);
-    return message;
+    const { status, newMailId, sentEmails } = await sendMessage(context.prompt);
+    return { status, newMailId, sentEmails };
   },
 });
 
@@ -104,24 +102,24 @@ export const unsubscribeTool = createTool({
   },
 });
 
-export const updateDraftTool = createTool({
-  id: "enhanceDraftEmail",
-  description:
-    "Improve the subject and content of an existing Gmail draft using AI. Use this when the user says 'rewrite my draft', 'make it sound more professional', or 'refine this email'. Takes draft ID and current text, returns an updated, polished version.",
-  inputSchema: UpdateDraftInputSchema,
-  outputSchema: UpdateDraftOutputSchema,
-  execute: async ({ context }) => {
-    console.log("Executing: update draft");
-    const draft = await updateDraftEmail(context.prompt, context.id);
-    return {
-      id: draft.id,
-      subject: draft.subject,
-      to: draft.to,
-      userId: "me",
-      snippet: draft.snippet ?? "",
-    };
-  },
-});
+// export const updateDraftTool = createTool({
+//   id: "enhanceDraftEmail",
+//   description:
+//     "Improve the subject and content of an existing Gmail draft using AI. Use this when the user says 'rewrite my draft', 'make it sound more professional', or 'refine this email'. Takes draft ID and current text, returns an updated, polished version.",
+//   inputSchema: UpdateDraftInputSchema,
+//   outputSchema: UpdateDraftOutputSchema,
+//   execute: async ({ context }) => {
+//     console.log("Executing: update draft");
+//     const draft = await updateDraftEmail(context.prompt, context.id);
+//     return {
+//       id: draft.id,
+//       subject: draft.subject,
+//       to: draft.to,
+//       userId: "me",
+//       snippet: draft.snippet ?? "",
+//     };
+//   },
+// });
 
 
 

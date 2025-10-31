@@ -6,6 +6,7 @@ import "./globals.css"
 import { ThemeProvider } from "@/components/theme-provider"
 import Providers from "@/components/provider"
 import ChatInterface from "@/components/chat-interface"
+import { Toaster } from "@/components/ui/toaster"
 
 const geist = Geist({ subsets: ["latin"] })
 const geistMono = Geist_Mono({ subsets: ["latin"] })
@@ -31,6 +32,7 @@ export default function RootLayout({
                 {children}
               </div>
             </div>
+            <Toaster />
           </ChatInterface>
         </ThemeProvider>
         <Analytics />

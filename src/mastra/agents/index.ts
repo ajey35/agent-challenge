@@ -82,7 +82,7 @@ Your main job is to interpret user intent and choose the correct tool to perform
   - “Show my drafts”
   - “Open saved drafts”
   - “Continue editing a draft”
-- Always confirm before sending an email and summarize what was sent afterward.
+- Always summarize what was sent afterward.
 
 ---
 

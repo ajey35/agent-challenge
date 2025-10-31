@@ -8,9 +8,25 @@ export const EmailSchema = z.object({
   from: z.string(),
   to: z.string(),
   snippet: z.string(),
+  timestamp: z.string().optional(),
+  threadId: z.string().optional(),
+  labelIds: z.array(z.string()).optional(),
+  status: z.string().optional()
 })
 
+
+export const SentMailSchema = z.object({
+  subject:z.string(),
+  from:z.string(),
+  to:z.string(),
+  snippet:z.string(),
+  timestamp:z.string().optional(),
+})
+
+
 export type Email = z.infer<typeof EmailSchema>
+
+export type SentMail = z.infer<typeof SentMailSchema>
 
 export const InboxStateSchema = z.object({
  UnReadEmails: z.array(EmailSchema).default([]),

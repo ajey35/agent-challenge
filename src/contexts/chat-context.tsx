@@ -11,11 +11,15 @@ export interface ChatContextType {
   isLoading: boolean
   error?: string
   lastToolResults?: Record<string, any> | null
-  // drafts exposed so other components can render them
+  // Email states exposed for components
   drafts?: Email[]
-  emails?:Email[]
+  emails?: Email[]
+  importantMails?: Email[]
+  sentMails?: Email[]
+  setImportantMails?: (d: Email[]) => void
   setDrafts?: (d: Email[]) => void
-  setEmails?:(d:Email[])=>void
+  setEmails?: (d: Email[]) => void
+  setSentMails?: (d: Email[]) => void
   sendMessage: SendMessageFn
 }
 
