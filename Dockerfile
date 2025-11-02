@@ -30,6 +30,10 @@ RUN --mount=type=cache,target=/pnpm/store \
 
 COPY . .
 
+ENV NODE_OPTIONS="--max-old-space-size=4096"
+
+RUN npx next telemetry disable
+
 RUN pnpm build
 
 FROM node:lts AS runtime

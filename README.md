@@ -1,15 +1,165 @@
-# Builders' Challenge #3: AI Agents 102
-**Presented by Nosana and Mastra**
+# AI-Powered Gmail Agent
 
-![Agent](./assets/NosanaBuildersChallenge03.jpg)
+A powerful Gmail management assistant built with Mastra, Next.js, and AI. Intelligently handle your inbox, compose emails, and manage communications with AI assistance.
 
-## Welcome to the AI Agent Challenge
+## ✨ Features
 
-Build and deploy intelligent AI agents using the **Mastra framework** on the **Nosana decentralized compute network**. Whether you're a beginner or an experienced developer, this challenge has something for everyone!
+### 📥 Smart Inbox Management
+- Auto-prioritized email viewing
+- Unread message organization
+- Important email identification
+- AI-powered email categorization
 
-## 🎯 Challenge Overview
+### 📝 Intelligent Draft Management
+- AI-assisted email composition
+- Draft management and organization
+- Smart draft suggestions
+- Template support
 
-**Your Mission:** Build an intelligent AI agent with a frontend interface and deploy it on Nosana's decentralized network.
+### 🔄 Email Operations
+- One-click email sending
+- Quick draft creation
+- Unsubscribe automation
+- Priority inbox management
+
+## 🛠 Technical Stack
+
+- **Frontend**: Next.js 16+ with App Router
+- **Backend**: Mastra Framework
+- **AI Integration**: Ollama / OpenAI
+- **Authentication**: NextAuth.js with Gmail OAuth
+- **Styling**: Tailwind CSS with shadcn/ui
+
+## 🤖 Agent Tools
+
+The Gmail agent exposes several powerful tools through the Mastra MCP server:
+
+```typescript
+interface GmailAgentTools {
+  // Fetching Emails
+  getUnreadEmails(): Promise<Email[]>      // Get latest unread messages
+  getImportantEmails(): Promise<Email[]>   // Get AI-prioritized emails
+  
+  // Draft Management
+  getEmailDrafts(): Promise<Draft[]>       // List saved drafts
+  createEmailDraft(content: string): Promise<Draft>  // Create new draft
+  
+  // Email Operations
+  sendEmail(content: string): Promise<SendResult>    // Send email
+  unsubscribeFromSender(sender: string): Promise<UnsubscribeResult>  // Handle unsubscribes
+}
+```
+
+## 🚀 Quick Start
+
+1. Clone & Install
+```bash
+git clone https://github.com/YOUR_USERNAME/agent-challenge
+cd agent-challenge
+pnpm install
+```
+
+2. Configure Environment
+```bash
+cp .env.example .env
+# Add your credentials:
+# GOOGLE_CLIENT_ID=
+# GOOGLE_CLIENT_SECRET=
+# NEXTAUTH_URL=http://localhost:3000
+# NEXTAUTH_SECRET=
+```
+
+3. Run Development Servers
+```bash
+# Start UI (http://localhost:3000)
+pnpm run dev:ui
+
+# Start Mastra Agent (http://localhost:4111)
+pnpm run dev:agent
+```
+
+## 🏗 Project Structure
+
+```
+src/
+├── app/                    # Next.js app router
+├── components/             # React components
+│   ├── inbox-view.tsx     # Inbox interface
+│   ├── drafts-view.tsx    # Drafts manager
+│   ├── compose-modal.tsx  # Email composer
+│   └── ...
+└── mastra/                # Agent implementation
+    ├── agents/            # AI agents
+    │   ├── inbox-agent.ts    # Email processing
+    │   └── drafts-agent.ts   # Draft management
+    ├── tools/             # Gmail API tools
+    ├── functions/         # Utility functions
+    └── types/             # TypeScript types
+```
+
+## 🔐 Security Features
+
+- OAuth 2.0 with Gmail
+- Secure token handling
+- Rate limiting
+- No email storage
+- CSRF protection
+
+## 🎯 Key Capabilities
+
+### Email Management
+- View unread messages (up to 25)
+- Identify important emails (top 10 prioritized)
+- AI-based email importance ranking
+- Quick actions on emails
+
+### Draft System
+- Create new drafts with AI assistance
+- Manage up to 20 drafts
+- Smart draft suggestions
+- Template management
+
+### Smart Features
+- Email prioritization with AI
+- One-click unsubscribe handling
+- Context-aware suggestions
+- Quick responses
+
+## 🔧 Configuration
+
+The agent supports multiple LLM backends:
+
+### Ollama (Recommended)
+```env
+OLLAMA_API_URL=https://your-ollama-endpoint/api
+MODEL_NAME_AT_ENDPOINT=qwen3:8b
+```
+
+### OpenAI (Alternative)
+```env
+OPENAI_API_KEY=your-key-here
+# Uncomment OpenAI config in src/mastra/agents/index.ts
+```
+
+## 📦 Build & Deploy
+
+```bash
+# Production build
+NODE_OPTIONS=--max-old-space-size=4096 pnpm build
+
+# Start production server
+pnpm start
+```
+
+## 🐳 Docker Support
+
+```bash
+# Build container
+docker build -t yourusername/agent-challenge:latest .
+
+# Run locally
+docker run -p 3000:3000 yourusername/agent-challenge:latest
+```
 
 ### What You'll Build
 

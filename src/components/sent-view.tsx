@@ -2,10 +2,45 @@
 
 import { useState } from "react"
 import { Search, Archive, Trash2, MoreVertical } from "lucide-react"
-import { Button } from "@/components/ui/button"
 import { useChat } from "@/contexts/chat-context"
 import type { Email } from "@/mastra/agents/inbox-agent"
-import { formatDistanceToNow } from "date-fns"
+// lightweight replacement for date-fns.formatDistanceToNow to avoid extra dependency at build time
+function formatDistanceToNow(date: Date, options?: { addSuffix?: boolean }) {
+  const now = Date.now()
+  const diff = Math.round((now - date.getTime()) / 1000) // seconds
+  const absDiff = Math.abs(diff)
+  const rtf = new Intl.RelativeTimeFormat(undefined, { numeric: 'auto' })
+
+  const divisions: [number, Intl.RelativeTimeFormatUnit][] = [
+    [60, 'second'],
+    [60, 'minute'],
+    [24, 'hour'],
+    [7, 'day'],
+    [4.34524, 'week'],
+    [12, 'month'],
+    [Number.POSITIVE_INFINITY, 'year'],
+  ]
+
+  let unit: Intl.RelativeTimeFormatUnit = 'second'
+  let value = absDiff
+
+  for (let i = 0, acc = absDiff; i < divisions.length; i++) {
+    const [factor, u] = divisions[i]
+    if (acc < factor) {
+      unit = u
+      value = Math.round(diff / (i === 0 ? 1 : divisions.slice(0, i).reduce((a, b) => a * b[0], 1)))
+      break
+    }
+    acc = acc / factor
+  }
+
+  // If options.addSuffix is true, rtf will provide strings like "in 1 day" or "1 day ago" depending on sign
+  if (options?.addSuffix ?? false) {
+    return rtf.format(-value, unit)
+  }
+
+  return `${Math.abs(value)} ${unit}${Math.abs(value) !== 1 ? 's' : ''}`
+}
 
 interface SentViewProps {
   onEmailSelect: (email: Email) => void;
