@@ -1,28 +1,62 @@
-# AI-Powered Gmail Agent
+# 🤖 AI Gmail Assistant
 
-A powerful Gmail management assistant built with Mastra, Next.js, and AI. Intelligently handle your inbox, compose emails, and manage communications with AI assistance.
+An intelligent email management system that helps you handle your Gmail inbox efficiently using AI.
+
+## 🌟 Demo & Deployment
+
+- 📹 [Watch Demo Video](https://drive.google.com/file/d/1Gt8eLKAd2G-zKGLqUD6AjzGX6m7VMeGB/view?usp=sharing)
+- 🚀 [Live on Nosana](https://dashboard.nosana.com/jobs/C8c2jY1HRknBzXmbmid3ibVq215exboXWSMSqJwmWpqw)
+- 🐦 [Project Update on X](https://x.com/ajeyakumara07/status/1984378932918132846)
+
+## 💡 What It Does
+
+This AI assistant helps you:
+1. **Manage Your Inbox** - Smart organization of unread emails
+2. **Handle Drafts** - AI-powered email composition
+3. **Save Time** - Quick actions for common email tasks
 
 ## ✨ Features
 
-### 📥 Smart Inbox Management
-- Auto-prioritized email viewing
-- Unread message organization
-- Important email identification
-- AI-powered email categorization
+- 📥 **Smart Inbox Management** - AI-powered organization of your emails
+- 📝 **Intelligent Drafting** - AI helps compose and refine your emails
+- 🎯 **Contextual Actions** - Smart suggestions based on email content
+- 🔄 **Gmail Integration** - Seamless connection with your Gmail account
+- 💬 **Chat Interface** - Natural conversation with AI assistant
+- 🎨 **Modern UI** - Clean, responsive design built with Next.js
+- 🚀 **Nosana Integration** - Deployed and running on Nosana platform
 
-### 📝 Intelligent Draft Management
-- AI-assisted email composition
-- Draft management and organization
-- Smart draft suggestions
-- Template support
+## 🛠 Setup Guide
 
-### 🔄 Email Operations
-- One-click email sending
-- Quick draft creation
-- Unsubscribe automation
-- Priority inbox management
+### Prerequisites
 
-## 🛠 Technical Stack
+- 📦 Node.js 16+
+- 📧 Gmail API credentials
+- 🔑 Nosana account
+
+### Quick Start
+
+1. **Clone & Install**
+```bash
+git clone <repository-url>
+cd agent-challenge
+pnpm install
+```
+
+2. **Configure Environment**
+Create `.env` file:
+```bash
+GMAIL_CLIENT_ID=your_client_id
+GMAIL_CLIENT_SECRET=your_client_secret
+```
+
+3. **Run Development Server**
+```bash
+pnpm dev
+```
+
+4. Open [http://localhost:3000](http://localhost:3000) to start using the assistant
+
+## 🔧 Technical Stack
 
 - **Frontend**: Next.js 16+ with App Router
 - **Backend**: Mastra Framework
@@ -30,34 +64,60 @@ A powerful Gmail management assistant built with Mastra, Next.js, and AI. Intell
 - **Authentication**: NextAuth.js with Gmail OAuth
 - **Styling**: Tailwind CSS with shadcn/ui
 
-## 🤖 Agent Tools
+## 🤖 Agent Implementation
 
-The Gmail agent exposes several powerful tools through the Mastra MCP server:
+The Gmail agent is built using the Mastra framework and provides these key capabilities:
+
+### 📧 Email Management Tools
 
 ```typescript
 interface GmailAgentTools {
-  // Fetching Emails
-  getUnreadEmails(): Promise<Email[]>      // Get latest unread messages
-  getImportantEmails(): Promise<Email[]>   // Get AI-prioritized emails
+  // Inbox Operations
+  getUnreadEmails(): Promise<Email[]>          // Fetch unread messages
+  getImportantEmails(): Promise<Email[]>       // Get priority emails
+  markAsRead(id: string): Promise<void>        // Mark email as read
   
   // Draft Management
-  getEmailDrafts(): Promise<Draft[]>       // List saved drafts
-  createEmailDraft(content: string): Promise<Draft>  // Create new draft
-  
-  // Email Operations
+  getEmailDrafts(): Promise<Draft[]>           // List all drafts
+  createEmailDraft(content: string): Promise<Draft>    // Create new draft
+  updateDraft(id: string, content: string): Promise<Draft>  // Edit draft
+
+  // Smart Features
+  summarizeEmail(id: string): Promise<string>   // AI email summary
+  suggestReply(id: string): Promise<string>     // Generate reply draft
   sendEmail(content: string): Promise<SendResult>    // Send email
   unsubscribeFromSender(sender: string): Promise<UnsubscribeResult>  // Handle unsubscribes
 }
 ```
 
-## 🚀 Quick Start
+## � Project Structure
 
-1. Clone & Install
-```bash
-git clone https://github.com/YOUR_USERNAME/agent-challenge
-cd agent-challenge
-pnpm install
 ```
+src/
+  ├── app/              # Next.js app router pages
+  ├── components/       # React components
+  ├── mastra/          # Mastra agent implementation
+  │   ├── agents/      # Gmail agent definitions
+  │   ├── functions/   # Gmail API utilities
+  │   ├── mcp/         # MCP server setup
+  │   └── tools/       # Agent tools implementation
+  ├── contexts/        # React context providers
+  └── lib/            # Utility functions
+
+nos_job_def/          # Nosana job definitions
+```
+
+## 🌟 Contributing
+
+1. Fork the repository
+2. Create your feature branch: `git checkout -b feature/amazing-feature`
+3. Commit your changes: `git commit -m 'Add amazing feature'`
+4. Push to the branch: `git push origin feature/amazing-feature`
+5. Open a Pull Request
+
+## 📄 License
+
+This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
 
 2. Configure Environment
 ```bash
